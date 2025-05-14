@@ -1,0 +1,12 @@
+{
+  "Version": 1,
+  "Hash": "zUhLmcWaBEtbPKGkGBDU95g1XEhJmVcPGeejhEah8xk=",
+  "Source": "InternationalBankAPI",
+  "BasePath": "_content/InternationalBankAPI",
+  "Mode": "Default",
+  "ManifestType": "Build",
+  "ReferencedProjectsConfiguration": [],
+  "DiscoveryPatterns": [],
+  "Assets": [],
+  "Endpoints": []
+}
