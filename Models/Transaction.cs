@@ -16,6 +16,7 @@ namespace InternationalBankAPI.Models
         public string Currency { get; set; } = string.Empty;
 
         [Required, MaxLength(11)]
+        [RegularExpression(@"^[A-Z]{4}[A-Z]{2}[A-Z0-9]{2}([A-Z0-9]{3})?$", ErrorMessage = "Invalid SWIFT code. Charartors Required. 1 - Exactly 4 uppercase letters (bank code). 2 - Exactly 2 uppercase letters (country code). 3 - Exactly 2 characters, uppercase letters or digits (location code).4- An optional group of 3 alphanumeric characters (branch code). Example: DEUTZAFF500")]
         public string SwiftCode { get; set; } = string.Empty;
 
         [Required, MaxLength(50)]

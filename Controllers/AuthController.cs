@@ -164,6 +164,35 @@ namespace InternationalBankAPI.Controllers
             return new JwtSecurityTokenHandler().WriteToken(token);
         }
 
+        [Authorize(Roles = "Employee,Admin")]
+        [HttpPost("create-customer")]
+        public async Task<IActionResult> CreateCustomer(CreateCustomerDto model)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            var user = new ApplicationUser
+            {
+                UserName = model.Email,
+                Email = model.Email,
+                Name = model.Name,
+                Surname = model.Surname,
+                UsernameCustom = model.Username,
+                IDNumber = model.IDNumber,
+                AccountNumber = GenerateAccountNumber(),
+                Created_Date = DateTime.UtcNow,
+                Created_By = User.Identity.Name
+            };
+
+            var result = await _userManager.CreateAsync(user, model.Password);
+            if (!result.Succeeded)
+                return BadRequest(result.Errors);
+
+            await _userManager.AddToRoleAsync(user, "Customer");
+
+            return Ok(new { message = "Customer account created successfully." });
+        }
+
     }
 
     

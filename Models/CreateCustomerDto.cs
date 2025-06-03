@@ -2,16 +2,14 @@ using System.ComponentModel.DataAnnotations;
 
 namespace InternationalBankAPI.Models
 {
-    public class LoginDto
+    public class CreateCustomerDto
     {
-        [Required]
+        public string Username { get; set; }
         [RegularExpression(@"^[^@\s]+@[^@\s]+\.[^@\s]+$", ErrorMessage = "Invalid email address. A valid email looks like 'user@example.com'.")]
         public string Email { get; set; }
-
-        [Required]
-        [DataType(DataType.Password)]
         public string Password { get; set; }
-
-        public bool RememberMe { get; set; } = false;
+        public string Name { get; set; }
+        public string Surname { get; set; }
+        public string IDNumber { get; set; }
     }
 }

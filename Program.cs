@@ -27,7 +27,7 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", builder =>
     {
-        builder.WithOrigins("http://localhost:3000")
+        builder.WithOrigins("https://localhost:3000", "http://localhost:3000")
                .AllowAnyHeader()
                .AllowAnyMethod()
                .AllowCredentials();
@@ -89,6 +89,11 @@ builder.Services.AddSwaggerGen(options =>
             Array.Empty<string>()
         }
     });
+});
+
+builder.Services.AddHttpsRedirection(options =>
+{
+    // options.HttpsPort = 443; // Consider removing or commenting this out if Kestrel uses a different HTTPS port (e.g., from launchSettings.json)
 });
 
 var app = builder.Build();
