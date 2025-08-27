@@ -37,7 +37,7 @@ namespace HopewellClinicApi.Controllers
 
                 return Ok(services);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 return StatusCode(500, new { error = "Internal server error" });
             }

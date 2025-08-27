@@ -5,6 +5,9 @@ namespace HopewellClinicApi.DTOs
     public class CreateAppointmentRequest
     {
         [Required]
+        public Guid PatientId { get; set; }
+
+        [Required]
         public Guid ServiceId { get; set; }
 
         [Required]
@@ -19,7 +22,22 @@ namespace HopewellClinicApi.DTOs
         public string? Notes { get; set; }
     }
 
-    public class AppointmentResponse
+    public class UpdateAppointmentRequest
+    {
+        public DateTime? AppointmentDate { get; set; }
+        public TimeOnly? StartTime { get; set; }
+        public TimeOnly? EndTime { get; set; }
+        public string? Notes { get; set; }
+        public string? Status { get; set; }
+    }
+
+    public class AssignStaffRequest
+    {
+        [Required]
+        public Guid StaffId { get; set; }
+    }
+
+     public class AppointmentResponse
     {
         public Guid Id { get; set; }
         public DateTime AppointmentDate { get; set; }
@@ -29,6 +47,7 @@ namespace HopewellClinicApi.DTOs
         public string? Notes { get; set; }
         public ServiceResponse? Service { get; set; }
         public PatientResponse? Patient { get; set; }
+        public StaffResponse? Staff { get; set; }
     }
 
     public class ServiceResponse

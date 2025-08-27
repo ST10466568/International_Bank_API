@@ -270,7 +270,7 @@ namespace HopewellClinicApi.Migrations
 
                     b.HasIndex("StaffId");
 
-                    b.ToTable("appointments");
+                    b.ToTable("appointments", (string)null);
                 });
 
             modelBuilder.Entity("HopewellClinicApi.Models.Patient", b =>
@@ -325,7 +325,7 @@ namespace HopewellClinicApi.Migrations
                         .IsUnique()
                         .HasFilter("[user_id] IS NOT NULL");
 
-                    b.ToTable("patients");
+                    b.ToTable("patients", (string)null);
                 });
 
             modelBuilder.Entity("HopewellClinicApi.Models.Service", b =>
@@ -363,7 +363,7 @@ namespace HopewellClinicApi.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("services");
+                    b.ToTable("services", (string)null);
 
                     b.HasData(
                         new
@@ -455,7 +455,7 @@ namespace HopewellClinicApi.Migrations
                     b.HasIndex("UserId")
                         .IsUnique();
 
-                    b.ToTable("staff");
+                    b.ToTable("staff", (string)null);
 
                     b.HasData(
                         new
@@ -510,7 +510,7 @@ namespace HopewellClinicApi.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("time_slots");
+                    b.ToTable("time_slots", (string)null);
 
                     b.HasData(
                         new

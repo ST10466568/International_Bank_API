@@ -82,4 +82,28 @@ namespace HopewellClinicApi.DTOs
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
     }
+
+    public class LogoutRequest
+    {
+        // This DTO can be empty, or include any data if needed for future logout mechanisms.
+        // For now, it serves to ensure a request body is explicitly handled.
+    }
+
+    public class UpdateStaffStatusRequest
+    {
+        [Required]
+        public bool IsActive { get; set; }
+    }
+
+    public class StaffScheduleRequest
+    {
+        public DateTime? StartDate { get; set; }
+        public DateTime? EndDate { get; set; }
+    }
+
+    public class StaffAvailabilityRequest
+    {
+        [Required]
+        public DateTime Date { get; set; }
+    }
 }

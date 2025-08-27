@@ -2,9 +2,11 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Identity;
 using HopewellClinicApi.Models;
 using HopewellClinicApi.DTOs;
-using HopewellClinicApi.Services;
+using System.Security.Cryptography;
 using HopewellClinicApi.Data;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;
 
 namespace HopewellClinicApi.Controllers
 {
@@ -13,13 +15,12 @@ namespace HopewellClinicApi.Controllers
     public class AuthController : ControllerBase
     {
         private readonly UserManager<ApplicationUser> _userManager;
-        private readonly JwtService _jwtService;
         private readonly HopewellDbContext _context;
+        private static readonly Dictionary<string, UserSession> _activeSessions = new();
 
-        public AuthController(UserManager<ApplicationUser> userManager, JwtService jwtService, HopewellDbContext context)
+        public AuthController(UserManager<ApplicationUser> userManager, HopewellDbContext context)
         {
             _userManager = userManager;
-            _jwtService = jwtService;
             _context = context;
         }
 
@@ -83,10 +84,119 @@ namespace HopewellClinicApi.Controllers
                 return Unauthorized(new { error = "Invalid credentials." });
             }
 
-            var token = await _jwtService.GenerateToken(user);
+            var sessionToken = GenerateSessionToken();
+            var userRoles = await _userManager.GetRolesAsync(user);
 
-            return Ok(new { token });
+            var session = new UserSession
+            {
+                UserId = user.Id,
+                Email = user.Email!,
+                Roles = userRoles.ToList(),
+                CreatedAt = DateTime.UtcNow,
+                ExpiresAt = DateTime.UtcNow.AddHours(24)
+            };
+
+            _activeSessions[sessionToken] = session;
+
+            return Ok(new
+            {
+                token = sessionToken,
+                user = new
+                {
+                    id = user.Id,
+                    email = user.Email,
+                    firstName = user.FirstName,
+                    lastName = user.LastName,
+                    roles = userRoles
+                }
+            });
         }
+
+        [HttpPost("logout")]
+        public IActionResult Logout()
+        {
+            var authHeader = Request.Headers["Authorization"].FirstOrDefault();
+            if (authHeader != null && authHeader.StartsWith("Bearer "))
+            {
+                var token = authHeader.Substring("Bearer ".Length);
+                if (_activeSessions.ContainsKey(token))
+                {
+                    _activeSessions.Remove(token);
+                }
+            }
+
+            return Ok(new { message = "Logged out successfully" });
+        }
+
+        [HttpGet("me")]
+        public async Task<IActionResult> GetCurrentUser()
+        {
+            var session = GetSessionFromHeader(Request, out var errorResponse);
+            if (session == null)
+            {
+                return errorResponse!;
+            }
+
+            var user = await _userManager.FindByIdAsync(session.UserId.ToString());
+            if (user == null)
+            {
+                return NotFound(new { error = "User not found" });
+            }
+
+            return Ok(new
+            {
+                id = user.Id,
+                email = user.Email,
+                firstName = user.FirstName,
+                lastName = user.LastName,
+                roles = session.Roles
+            });
+        }
+
+        private static string GenerateSessionToken()
+        {
+            var randomBytes = new byte[32];
+            using var rng = RandomNumberGenerator.Create();
+            rng.GetBytes(randomBytes);
+            return Convert.ToBase64String(randomBytes);
+        }
+
+        private static UserSession? GetSessionFromHeader(HttpRequest request, out IActionResult? errorResult)
+        {
+            errorResult = null;
+            var value = request.Headers["Authorization"].FirstOrDefault();
+
+            if (string.IsNullOrEmpty(value) || !value.StartsWith("Bearer "))
+            {
+                errorResult = new UnauthorizedObjectResult(new { error = "No valid token provided" });
+                return null;
+            }
+
+            var token = value.Substring("Bearer ".Length);
+            if (!_activeSessions.TryGetValue(token, out var session))
+            {
+                errorResult = new UnauthorizedObjectResult(new { error = "Invalid or expired token" });
+                return null;
+            }
+
+            if (session.ExpiresAt < DateTime.UtcNow)
+            {
+                _activeSessions.Remove(token);
+                errorResult = new UnauthorizedObjectResult(new { error = "Token expired" });
+                return null;
+            }
+
+            return session;
+        }
+    }
+
+    public class UserSession
+    {
+        public Guid UserId { get; set; }
+        public string Email { get; set; } = string.Empty;
+        public List<string> Roles { get; set; } = new();
+        public DateTime CreatedAt { get; set; }
+        public DateTime ExpiresAt { get; set; }
     }
 }
 

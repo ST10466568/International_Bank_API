@@ -1,0 +1,23 @@
+# Build
+bin/
+obj/
+
+# VS/VSCode
+.vs/
+.vscode/
+
+# User files
+*.user
+*.suo
+*.userprefs
+
+# Logs
+logs/
+*.log
+
+# Secrets
+secrets.json
+
+# Misc
+*.DS_Store
+Thumbs.db

@@ -147,5 +147,43 @@ public static class DataSeeder
         );
 
         // ❌ Do NOT seed Patients here (dynamic DateOfBirth)
+        
+        // Add a test patient for development/testing
+        var testPatientUser = new ApplicationUser
+        {
+            Id = Guid.Parse("550e8400-e29b-41d4-a716-446655441004"),
+            FirstName = "John",
+            LastName = "Doe",
+            Email = "john.doe@test.com",
+            NormalizedEmail = "JOHN.DOE@TEST.COM",
+            UserName = "john.doe@test.com",
+            NormalizedUserName = "JOHN.DOE@TEST.COM",
+            PhoneNumber = "+27123456791",
+            EmailConfirmed = true,
+            PhoneNumberConfirmed = true,
+            IsActive = true,
+            PasswordHash = passwordHash
+        };
+
+        modelBuilder.Entity<ApplicationUser>().HasData(testPatientUser);
+
+        // Add user role for test patient
+        modelBuilder.Entity<IdentityUserRole<Guid>>().HasData(
+            new IdentityUserRole<Guid> { UserId = testPatientUser.Id, RoleId = roles.First(r => r.Name == "patient").Id }
+        );
+
+        // Add test patient
+        modelBuilder.Entity<Patient>().HasData(
+            new Patient
+            {
+                Id = Guid.Parse("550e8400-e29b-41d4-a716-446655442000"),
+                UserId = testPatientUser.Id,
+                PatientNumber = "PAT001",
+                DateOfBirth = new DateTime(1990, 1, 1),
+                Address = "123 Test Street, Test City",
+                EmergencyContactName = "Jane Doe",
+                EmergencyContactPhone = "+27123456792"
+            }
+        );
     }
 }
