@@ -16,24 +16,27 @@ namespace HopewellClinicApi.Controllers
             _context = context;
         }
 
-        [HttpGet("by-day/{dayOfWeek}")]
-        public async Task<ActionResult<IEnumerable<TimeSlotResponse>>> GetTimeSlotsByDay(int dayOfWeek)
+        [HttpGet("by-day/{day}")]
+        public async Task<ActionResult<IEnumerable<TimeSlotResponse>>> GetTimeSlotsByDay(int day)
         {
             try
             {
-                if (dayOfWeek < 1 || dayOfWeek > 7)
+                if (day < 0 || day > 6)
                 {
-                    return BadRequest(new { error = "Day of week must be between 1 (Monday) and 7 (Sunday)" });
+                    return BadRequest(new { error = "Day must be between 0 (Sunday) and 6 (Saturday)" });
                 }
+
+                // Convert from 0=Sunday, 1=Monday format to our database format (1=Monday, 7=Sunday)
+                int dayOfWeek = day == 0 ? 7 : day;
 
                 var timeSlots = await _context.TimeSlots
                     .Where(t => t.DayOfWeek == dayOfWeek && t.IsActive)
                     .Select(t => new TimeSlotResponse
                     {
                         Id = t.Id,
-                        DayOfWeek = t.DayOfWeek,
                         StartTime = t.StartTime,
                         EndTime = t.EndTime,
+                        DayOfWeek = t.DayOfWeek,
                         IsActive = t.IsActive,
                         CreatedAt = t.CreatedAt
                     })
@@ -48,68 +51,86 @@ namespace HopewellClinicApi.Controllers
             }
         }
 
+        [HttpGet("test-filter")]
+        public async Task<ActionResult> TestFilter([FromQuery] DateTime date)
+        {
+            var dayOfWeek = (int)date.DayOfWeek;
+            if (dayOfWeek == 0) dayOfWeek = 7;
+            
+            var allSlots = await _context.TimeSlots.Where(t => t.IsActive).ToListAsync();
+            var filteredSlots = allSlots.Where(t => t.DayOfWeek == dayOfWeek).ToList();
+            
+            return Ok(new {
+                requestedDate = date.ToString("yyyy-MM-dd"),
+                requestedDayOfWeek = dayOfWeek,
+                totalSlots = allSlots.Count,
+                filteredSlotsCount = filteredSlots.Count,
+                allSlots = allSlots.Select(s => new { s.Id, s.DayOfWeek, s.StartTime }),
+                filteredSlots = filteredSlots.Select(s => new { s.Id, s.DayOfWeek, s.StartTime })
+            });
+        }
+
         [HttpGet("available")]
         public async Task<ActionResult<IEnumerable<TimeSlotResponse>>> GetAvailableTimeSlots(
-            [FromQuery] DateTime date,
-            [FromQuery] Guid? serviceId = null,
-            [FromQuery] Guid? staffId = null)
+            [FromQuery] DateTime? date = null)
         {
             try
             {
-                var dayOfWeek = (int)date.DayOfWeek;
-                if (dayOfWeek == 0) dayOfWeek = 7; // Sunday = 7
-
-                var baseTimeSlots = await _context.TimeSlots
-                    .Where(t => t.DayOfWeek == dayOfWeek && t.IsActive)
-                    .ToListAsync();
-
-                if (!baseTimeSlots.Any())
+                if (date.HasValue)
                 {
-                    return Ok(new List<TimeSlotResponse>());
-                }
+                    // Get the day of week for the requested date (1=Monday, 7=Sunday)
+                    var dayOfWeek = (int)date.Value.DayOfWeek;
+                    if (dayOfWeek == 0) dayOfWeek = 7; // Convert Sunday from 0 to 7
 
-                var service = serviceId.HasValue 
-                    ? await _context.Services.FindAsync(serviceId.Value)
-                    : null;
+                    // Get all active time slots first, then filter by day of week in memory
+                    var allTimeSlots = await _context.TimeSlots
+                        .Where(t => t.IsActive)
+                        .ToListAsync();
 
-                var duration = service?.DurationMinutes ?? 30;
+                    // Filter by day of week
+                    var dayTimeSlots = allTimeSlots
+                        .Where(t => t.DayOfWeek == dayOfWeek)
+                        .ToList();
 
-                var availableSlots = new List<TimeSlotResponse>();
-                var bookedAppointments = await _context.Appointments
-                    .Where(a => a.AppointmentDate == date && a.Status != "cancelled")
-                    .ToListAsync();
+                    var existingAppointments = await _context.Appointments
+                        .Where(a => a.AppointmentDate == date.Value && a.Status == "confirmed")
+                        .ToListAsync();
 
-                // Filter by staff if specified
-                if (staffId.HasValue)
-                {
-                    bookedAppointments = bookedAppointments.Where(a => a.StaffId == staffId).ToList();
-                }
-
-                foreach (var slot in baseTimeSlots)
-                {
-                    var slotEndTime = slot.StartTime.AddMinutes(duration);
-                    if (slotEndTime <= slot.EndTime)
-                    {
-                        // Check if this slot conflicts with any booked appointment
-                        var hasConflict = bookedAppointments.Any(a => 
-                            a.StartTime < slotEndTime && a.EndTime > slot.StartTime);
-
-                        if (!hasConflict)
+                    var availableSlots = dayTimeSlots
+                        .Where(slot => !existingAppointments.Any(apt => apt.StartTime == slot.StartTime))
+                        .Select(slot => new TimeSlotResponse
                         {
-                            availableSlots.Add(new TimeSlotResponse
-                            {
-                                Id = slot.Id,
-                                DayOfWeek = slot.DayOfWeek,
-                                StartTime = slot.StartTime,
-                                EndTime = slotEndTime,
-                                IsActive = slot.IsActive,
-                                CreatedAt = slot.CreatedAt
-                            });
-                        }
-                    }
-                }
+                            Id = slot.Id,
+                            StartTime = slot.StartTime,
+                            EndTime = slot.EndTime,
+                            DayOfWeek = slot.DayOfWeek,
+                            IsActive = slot.IsActive,
+                            CreatedAt = slot.CreatedAt
+                        })
+                        .OrderBy(s => s.StartTime)
+                        .ToList();
 
-                return Ok(availableSlots.OrderBy(s => s.StartTime));
+                    return Ok(availableSlots);
+                }
+                else
+                {
+                    // Get all active time slots
+                    var timeSlots = await _context.TimeSlots
+                        .Where(t => t.IsActive)
+                        .Select(t => new TimeSlotResponse
+                        {
+                            Id = t.Id,
+                            StartTime = t.StartTime,
+                            EndTime = t.EndTime,
+                            DayOfWeek = t.DayOfWeek,
+                            IsActive = t.IsActive,
+                            CreatedAt = t.CreatedAt
+                        })
+                        .OrderBy(t => t.StartTime)
+                        .ToListAsync();
+
+                    return Ok(timeSlots);
+                }
             }
             catch (Exception)
             {

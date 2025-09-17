@@ -14,10 +14,9 @@ namespace HopewellClinicApi.DTOs
         public DateTime AppointmentDate { get; set; }
 
         [Required]
-        public TimeOnly StartTime { get; set; }
+        public string StartTime { get; set; } = string.Empty;
 
-        [Required]
-        public TimeOnly EndTime { get; set; }
+        public string EndTime { get; set; } = string.Empty;
 
         public string? Notes { get; set; }
     }
@@ -50,16 +49,7 @@ namespace HopewellClinicApi.DTOs
         public StaffResponse? Staff { get; set; }
     }
 
-    public class ServiceResponse
-    {
-        public Guid Id { get; set; }
-        public string Name { get; set; } = string.Empty;
-        public string? Description { get; set; }
-        public int DurationMinutes { get; set; }
-        public bool IsActive { get; set; }
-        public DateTime CreatedAt { get; set; }
-        public DateTime UpdatedAt { get; set; }
-    }
+
 
     public class TimeSlotResponse
     {

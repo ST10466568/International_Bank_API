@@ -1,0 +1,72 @@
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Filters;
+using System.Security.Claims;
+
+namespace HopewellClinicApi.Attributes
+{
+    [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method, AllowMultiple = true)]
+    public class AuthorizeRoleAttribute : Attribute, IAuthorizationFilter
+    {
+        private readonly string[] _allowedRoles;
+
+        public AuthorizeRoleAttribute(params string[] allowedRoles)
+        {
+            _allowedRoles = allowedRoles;
+        }
+
+        public void OnAuthorization(AuthorizationFilterContext context)
+        {
+            var user = context.HttpContext.User;
+            
+            if (!user.Identity?.IsAuthenticated ?? true)
+            {
+                context.Result = new UnauthorizedObjectResult(new { error = "Authentication required" });
+                return;
+            }
+
+            var userRoles = user.Claims
+                .Where(c => c.Type == ClaimTypes.Role)
+                .Select(c => c.Value)
+                .ToList();
+
+            if (!_allowedRoles.Any(role => userRoles.Contains(role)))
+            {
+                context.Result = new ForbidResult();
+                return;
+            }
+        }
+    }
+
+    // Specific role attributes for convenience
+    public class AuthorizeAdminAttribute : AuthorizeRoleAttribute
+    {
+        public AuthorizeAdminAttribute() : base("admin") { }
+    }
+
+    public class AuthorizeDoctorAttribute : AuthorizeRoleAttribute
+    {
+        public AuthorizeDoctorAttribute() : base("doctor") { }
+    }
+
+    public class AuthorizeNurseAttribute : AuthorizeRoleAttribute
+    {
+        public AuthorizeNurseAttribute() : base("nurse") { }
+    }
+
+    public class AuthorizeStaffAttribute : AuthorizeRoleAttribute
+    {
+        public AuthorizeStaffAttribute() : base("doctor", "nurse", "admin") { }
+    }
+
+    public class AuthorizePatientAttribute : AuthorizeRoleAttribute
+    {
+        public AuthorizePatientAttribute() : base("patient") { }
+    }
+
+    public class AuthorizePatientOrStaffAttribute : AuthorizeRoleAttribute
+    {
+        public AuthorizePatientOrStaffAttribute() : base("patient", "doctor", "nurse", "admin") { }
+    }
+}
+

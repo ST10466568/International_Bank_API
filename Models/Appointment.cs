@@ -44,6 +44,37 @@ namespace HopewellClinicApi.Models
         [Column("notes")]
         public string? Notes { get; set; }
 
+        [Column("approval_status")]
+        public ApprovalStatus ApprovalStatus { get; set; } = ApprovalStatus.Pending;
+
+        [Column("rejection_reason")]
+        public string? RejectionReason { get; set; }
+
+        [Column("approved_at")]
+        public DateTime? ApprovedAt { get; set; }
+
+        [Column("approved_by")]
+        public string? ApprovedBy { get; set; } // Doctor ID
+
+        [Column("approved_by_nurse_id")]
+        public string? ApprovedByNurseId { get; set; }
+
+        [Column("nurse_approval_date")]
+        public DateTime? NurseApprovalDate { get; set; }
+
+        [Column("approval_notes")]
+        public string? ApprovalNotes { get; set; }
+
+        [Column("is_walkin")]
+        public bool IsWalkIn { get; set; } = false;
+
+        [Column("service_price")]
+        public decimal? ServicePrice { get; set; }
+
+        [Column("payment_status")]
+        [MaxLength(50)]
+        public string? PaymentStatus { get; set; }
+
         [Column("created_at")]
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 

@@ -1,11 +1,12 @@
 {
   "Version": 1,
-  "Hash": "1cORq/Ji//VKTKrVZSP3snosEBDv9Flj2Dd25YA3GBg=",
+  "Hash": "c2J7pokplUVSr6/n3GtCudGmKLUhiwreai/tAd2gexE=",
   "Source": "HopewellClinicApi",
   "BasePath": "_content/HopewellClinicApi",
   "Mode": "Default",
   "ManifestType": "Build",
   "ReferencedProjectsConfiguration": [],
   "DiscoveryPatterns": [],
-  "Assets": []
+  "Assets": [],
+  "Endpoints": []
 }

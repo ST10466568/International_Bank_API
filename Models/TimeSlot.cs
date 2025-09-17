@@ -26,5 +26,28 @@ namespace HopewellClinicApi.Models
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
         public bool IsBooked { get; set; }
+
+        // New properties for enhanced booking system
+        [Column("doctor_id")]
+        public Guid? DoctorId { get; set; }
+
+        [Column("date")]
+        public DateTime? Date { get; set; }
+
+        [Column("duration")]
+        public int Duration { get; set; } = 30; // in minutes
+
+        [Column("is_available")]
+        public bool IsAvailable { get; set; } = true;
+
+        [Column("appointment_id")]
+        public Guid? AppointmentId { get; set; }
+
+        // Navigation properties
+        [ForeignKey("DoctorId")]
+        public virtual Staff? Doctor { get; set; }
+
+        [ForeignKey("AppointmentId")]
+        public virtual Appointment? Appointment { get; set; }
     }
 }

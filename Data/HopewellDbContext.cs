@@ -17,6 +17,8 @@ namespace HopewellClinicApi.Data
         public DbSet<Staff> Staff { get; set; }
         public DbSet<TimeSlot> TimeSlots { get; set; }
         public DbSet<Appointment> Appointments { get; set; }
+        public DbSet<DoctorShift> DoctorShifts { get; set; }
+        public DbSet<DoctorSchedule> DoctorSchedules { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -55,6 +57,13 @@ namespace HopewellClinicApi.Data
                 .HasForeignKey(a => a.StaffId)
                 .OnDelete(DeleteBehavior.SetNull);
 
+            // DoctorShift relationships
+            modelBuilder.Entity<DoctorShift>()
+                .HasOne(ds => ds.Doctor)
+                .WithMany()
+                .HasForeignKey(ds => ds.DoctorId)
+                .OnDelete(DeleteBehavior.Cascade);
+
             // Unique constraints
             modelBuilder.Entity<Patient>().HasIndex(p => p.PatientNumber).IsUnique();
             modelBuilder.Entity<Staff>().HasIndex(s => s.StaffNumber).IsUnique();
@@ -66,6 +75,36 @@ namespace HopewellClinicApi.Data
             modelBuilder.Entity<Appointment>().Property(a => a.EndTime).HasColumnType("time");
             modelBuilder.Entity<Appointment>().Property(a => a.AppointmentDate).HasColumnType("date");
             modelBuilder.Entity<Patient>().Property(p => p.DateOfBirth).HasColumnType("date");
+            
+            // DoctorSchedule configuration
+            modelBuilder.Entity<DoctorSchedule>()
+                .Property(ds => ds.Date).HasColumnType("date");
+            modelBuilder.Entity<DoctorSchedule>()
+                .Property(ds => ds.DayOfWeek).HasMaxLength(10);
+            modelBuilder.Entity<DoctorSchedule>()
+                .Property(ds => ds.ShiftStart).HasColumnType("time");
+            modelBuilder.Entity<DoctorSchedule>()
+                .Property(ds => ds.ShiftEnd).HasColumnType("time");
+            modelBuilder.Entity<DoctorSchedule>()
+                .Property(ds => ds.BreakStart).HasColumnType("time");
+            modelBuilder.Entity<DoctorSchedule>()
+                .Property(ds => ds.BreakEnd).HasColumnType("time");
+            
+            // Unique constraint for DoctorId and DayOfWeek
+            modelBuilder.Entity<DoctorSchedule>()
+                .HasIndex(ds => new { ds.DoctorId, ds.DayOfWeek, ds.Date })
+                .IsUnique();
+            
+            // DoctorSchedule relationships
+            modelBuilder.Entity<DoctorSchedule>()
+                .HasOne(ds => ds.Doctor)
+                .WithMany()
+                .HasForeignKey(ds => ds.DoctorId)
+                .OnDelete(DeleteBehavior.Cascade);
+            
+            // Decimal precision
+            modelBuilder.Entity<Service>().Property(s => s.Price).HasPrecision(10, 2);
+            modelBuilder.Entity<Appointment>().Property(a => a.ServicePrice).HasPrecision(10, 2);
 
             // Seed static data
             DataSeeder.SeedData(modelBuilder);
@@ -89,7 +128,7 @@ namespace HopewellClinicApi.Data
             var entries = ChangeTracker.Entries()
                 .Where(e => e.Entity is Patient || e.Entity is Staff || e.Entity is Service ||
                             e.Entity is Appointment || e.Entity is TimeSlot || e.Entity is ApplicationUser ||
-                            e.Entity is ApplicationRole);
+                            e.Entity is ApplicationRole || e.Entity is DoctorShift || e.Entity is DoctorSchedule);
 
             foreach (var entry in entries)
             {

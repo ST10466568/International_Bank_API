@@ -1,66 +1,125 @@
-using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity;
-
-using HopewellClinicApi.Data;
-using HopewellClinicApi.Middleware;
-
-using HopewellClinicApi.Models;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Microsoft.EntityFrameworkCore.Diagnostics;
-
-
-
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
+using HopewellClinicApi.Data;
+using HopewellClinicApi.Models;
+using HopewellClinicApi.Services;
+using HopewellClinicApi.Middleware;
+using HopewellClinicApi.Attributes;
 
 var builder = WebApplication.CreateBuilder(args);
-
-// Add services to the container
-builder.Services.AddControllers();
 
 // Configure Entity Framework with retry policy
 builder.Services.AddDbContext<HopewellDbContext>(options =>
 {
-  var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-    options.UseSqlServer(connectionString)
-                   .ConfigureWarnings(warnings => 
-            warnings.Ignore(RelationalEventId.MultipleCollectionIncludeWarning));
+    var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+    options.UseSqlServer(connectionString, sqlOptions =>
+    {
+        sqlOptions.EnableRetryOnFailure(
+            maxRetryCount: 3,
+            maxRetryDelay: TimeSpan.FromSeconds(30),
+            errorNumbersToAdd: null);
+    })
+    .ConfigureWarnings(warnings => 
+        warnings.Ignore(RelationalEventId.MultipleCollectionIncludeWarning));
 });
 
 // Add ASP.NET Core Identity
 builder.Services.AddIdentity<ApplicationUser, ApplicationRole>(options =>
 {
+    // Password settings
     options.Password.RequireDigit = true;
-    options.Password.RequiredLength = 8;
-    options.Password.RequireNonAlphanumeric = false;
-    options.Password.RequireUppercase = true;
     options.Password.RequireLowercase = true;
+    options.Password.RequireNonAlphanumeric = true;
+    options.Password.RequireUppercase = true;
+    options.Password.RequiredLength = 8;
+    options.Password.RequiredUniqueChars = 1;
+
+    // Lockout settings
+    options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(5);
+    options.Lockout.MaxFailedAccessAttempts = 5;
+    options.Lockout.AllowedForNewUsers = true;
+
+    // User settings
+    options.User.AllowedUserNameCharacters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._@+";
+    options.User.RequireUniqueEmail = true;
 })
 .AddEntityFrameworkStores<HopewellDbContext>()
 .AddDefaultTokenProviders();
 
+// Add services to the container
+builder.Services.AddControllers();
+builder.Services.AddScoped<JwtService>();
+builder.Services.AddScoped<UserService>();
+builder.Services.AddScoped<BookingService>();
+builder.Services.AddScoped<DoctorScheduleService>();
 
+// Configure JWT Authentication
+var jwtSettings = builder.Configuration.GetSection("JwtSettings");
+var secretKey = jwtSettings["SecretKey"];
+var issuer = jwtSettings["Issuer"];
+var audience = jwtSettings["Audience"];
 
-
-// Custom JWT Authentication - bypasses problematic [Authorize] attribute
-// No authentication services needed - handled by custom middleware
-
-
-
-
-
-// Configure CORS to allow frontend access
-builder.Services.AddCors(options =>
-{
-    options.AddPolicy("AllowFrontend", policy =>
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
     {
-        policy.WithOrigins("http://localhost:5173", "http://localhost:3000", "http://localhost:5000", "http://localhost:4001", "https://localhost:9999", "http://localhost:9999")
-              .AllowAnyMethod()
-              .AllowAnyHeader()
-              .AllowCredentials();
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = issuer,
+            ValidAudience = audience,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey!)),
+            ClockSkew = TimeSpan.Zero
+        };
+        
+        // Remove all events to eliminate potential issues
     });
-});
+
+// Add Authorization
+builder.Services.AddAuthorization();
 
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+// Add CORS
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowFrontend", policy =>
+    {
+        policy.WithOrigins(
+                "http://localhost:3000",
+                "https://hopewell-clinic-frontend.azurewebsites.net",
+                "https://hopewellapi-azcvcferesfpgjgm.southafricanorth-01.azurewebsites.net"
+            )
+            .AllowAnyHeader()
+            .AllowAnyMethod()
+            .AllowCredentials();
+    });
+    
+    options.AddPolicy("AllowAll", policy =>
+    {
+        policy.AllowAnyOrigin()
+              .AllowAnyMethod()
+              .AllowAnyHeader();
+    });
+    
+    // Add a more permissive policy for debugging
+    options.AddPolicy("DebugCors", policy =>
+    {
+        policy.AllowAnyOrigin()
+              .AllowAnyHeader()
+              .AllowAnyMethod();
+    });
+});
 
 var app = builder.Build();
 
@@ -71,23 +130,57 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-// Apply migrations and runtime seed
-// Apply migrations + seed runtime data
-using (var scope = app.Services.CreateScope())
-{
-    var db = scope.ServiceProvider.GetRequiredService<HopewellDbContext>();
-    db.Database.Migrate();
-    DbInitializer.SeedRuntimeData(db); 
-}
+// Enable CORS first - use DebugCors for now to fix the CORS issue
+app.UseCors("DebugCors");
 
-// Enable CORS
-app.UseCors("AllowFrontend");
+// Add Authentication and Authorization
+app.UseAuthentication();
+app.UseAuthorization();
 
-// Authentication disabled for stability - manual checks in controllers if needed
-// app.UseJwtAuthentication();
+// Add routing
+app.UseRouting();
+
+// Add a simple health check endpoint
+app.MapGet("/health", () => "API is running!");
 
 // Map controllers
 app.MapControllers();
 
-// Bind to localhost on port 5002 for testing
-app.Run("http://localhost:5002");
+// Database migration and seeding
+try
+{
+    using (var scope = app.Services.CreateScope())
+    {
+        var db = scope.ServiceProvider.GetRequiredService<HopewellDbContext>();
+        db.Database.Migrate();
+        
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+        var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<ApplicationRole>>();
+        await DbInitializer.SeedUsers(userManager, roleManager);
+        
+        // Seed patients
+        await DbInitializer.SeedPatients(db, userManager);
+        
+        // Seed services
+        await DbInitializer.SeedServices(db);
+        
+        // Seed doctor schedules
+        await DoctorScheduleSeeder.SeedDoctorSchedulesAsync(db);
+    }
+}
+catch (Exception ex)
+{
+    var logger = app.Services.GetRequiredService<ILogger<Program>>();
+    logger.LogError(ex, "An error occurred while migrating or seeding the database");
+}
+
+// For Azure App Service, don't specify URL - let the hosting environment handle it
+// For local development, use port 5002
+if (app.Environment.IsDevelopment())
+{
+    app.Run("http://localhost:5002");
+}
+else
+{
+    app.Run();
+}

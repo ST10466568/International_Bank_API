@@ -17,7 +17,7 @@ namespace HopewellClinicApi.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "9.0.8")
+                .HasAnnotation("ProductVersion", "8.0.15")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
@@ -163,8 +163,8 @@ namespace HopewellClinicApi.Migrations
                         {
                             Id = new Guid("550e8400-e29b-41d4-a716-446655441001"),
                             AccessFailedCount = 0,
-                            ConcurrencyStamp = "8f7db8e4-85a5-4331-a180-5dd4006c4496",
-                            CreatedAt = new DateTime(2025, 8, 21, 20, 33, 10, 858, DateTimeKind.Utc).AddTicks(6906),
+                            ConcurrencyStamp = "633eedd5-b24f-4f6c-9ccf-8d412db5dd99",
+                            CreatedAt = new DateTime(2025, 9, 14, 13, 11, 37, 194, DateTimeKind.Utc).AddTicks(6438),
                             Email = "nomsa.mandela@hopewell.com",
                             EmailConfirmed = true,
                             FirstName = "Dr. Nomsa",
@@ -177,15 +177,15 @@ namespace HopewellClinicApi.Migrations
                             PhoneNumber = "+27123456789",
                             PhoneNumberConfirmed = true,
                             TwoFactorEnabled = false,
-                            UpdatedAt = new DateTime(2025, 8, 21, 20, 33, 10, 858, DateTimeKind.Utc).AddTicks(6907),
+                            UpdatedAt = new DateTime(2025, 9, 14, 13, 11, 37, 194, DateTimeKind.Utc).AddTicks(6440),
                             UserName = "nomsa.mandela@hopewell.com"
                         },
                         new
                         {
                             Id = new Guid("550e8400-e29b-41d4-a716-446655441003"),
                             AccessFailedCount = 0,
-                            ConcurrencyStamp = "c3d7e6ae-dae1-4cf7-a0da-7ea95c62dcd7",
-                            CreatedAt = new DateTime(2025, 8, 21, 20, 33, 10, 859, DateTimeKind.Utc).AddTicks(5142),
+                            ConcurrencyStamp = "36244b3f-2f27-4eaa-adbb-b07c9078ac51",
+                            CreatedAt = new DateTime(2025, 9, 14, 13, 11, 37, 194, DateTimeKind.Utc).AddTicks(6495),
                             Email = "thabo.sithole@hopewell.com",
                             EmailConfirmed = true,
                             FirstName = "Dr. Thabo",
@@ -198,8 +198,29 @@ namespace HopewellClinicApi.Migrations
                             PhoneNumber = "+27123456790",
                             PhoneNumberConfirmed = true,
                             TwoFactorEnabled = false,
-                            UpdatedAt = new DateTime(2025, 8, 21, 20, 33, 10, 859, DateTimeKind.Utc).AddTicks(5144),
+                            UpdatedAt = new DateTime(2025, 9, 14, 13, 11, 37, 194, DateTimeKind.Utc).AddTicks(6495),
                             UserName = "thabo.sithole@hopewell.com"
+                        },
+                        new
+                        {
+                            Id = new Guid("550e8400-e29b-41d4-a716-446655441004"),
+                            AccessFailedCount = 0,
+                            ConcurrencyStamp = "f90d7a40-b6a3-4d39-9bac-7a787d4d46fd",
+                            CreatedAt = new DateTime(2025, 9, 14, 13, 11, 37, 194, DateTimeKind.Utc).AddTicks(6904),
+                            Email = "john.doe@test.com",
+                            EmailConfirmed = true,
+                            FirstName = "John",
+                            IsActive = true,
+                            LastName = "Doe",
+                            LockoutEnabled = false,
+                            NormalizedEmail = "JOHN.DOE@TEST.COM",
+                            NormalizedUserName = "JOHN.DOE@TEST.COM",
+                            PasswordHash = "AQAAAAIAAYagAAAAEBLC+82KkL8Zl2E1f4aXkXwzWf6a/b8b/eXwzWf6a/b8b/eXwzWf6a/b8b/eQ==",
+                            PhoneNumber = "+27123456791",
+                            PhoneNumberConfirmed = true,
+                            TwoFactorEnabled = false,
+                            UpdatedAt = new DateTime(2025, 9, 14, 13, 11, 37, 194, DateTimeKind.Utc).AddTicks(6904),
+                            UserName = "john.doe@test.com"
                         });
                 });
 
@@ -213,6 +234,26 @@ namespace HopewellClinicApi.Migrations
                     b.Property<DateTime>("AppointmentDate")
                         .HasColumnType("date")
                         .HasColumnName("appointment_date");
+
+                    b.Property<string>("ApprovalNotes")
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("approval_notes");
+
+                    b.Property<int>("ApprovalStatus")
+                        .HasColumnType("int")
+                        .HasColumnName("approval_status");
+
+                    b.Property<DateTime?>("ApprovedAt")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("approved_at");
+
+                    b.Property<string>("ApprovedBy")
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("approved_by");
+
+                    b.Property<string>("ApprovedByNurseId")
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("approved_by_nurse_id");
 
                     b.Property<string>("BookingType")
                         .IsRequired()
@@ -232,17 +273,39 @@ namespace HopewellClinicApi.Migrations
                         .HasColumnType("time")
                         .HasColumnName("end_time");
 
+                    b.Property<bool>("IsWalkIn")
+                        .HasColumnType("bit")
+                        .HasColumnName("is_walkin");
+
                     b.Property<string>("Notes")
                         .HasColumnType("nvarchar(max)")
                         .HasColumnName("notes");
+
+                    b.Property<DateTime?>("NurseApprovalDate")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("nurse_approval_date");
 
                     b.Property<Guid>("PatientId")
                         .HasColumnType("uniqueidentifier")
                         .HasColumnName("patient_id");
 
+                    b.Property<string>("PaymentStatus")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)")
+                        .HasColumnName("payment_status");
+
+                    b.Property<string>("RejectionReason")
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("rejection_reason");
+
                     b.Property<Guid>("ServiceId")
                         .HasColumnType("uniqueidentifier")
                         .HasColumnName("service_id");
+
+                    b.Property<decimal?>("ServicePrice")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("decimal(10,2)")
+                        .HasColumnName("service_price");
 
                     b.Property<Guid?>("StaffId")
                         .HasColumnType("uniqueidentifier")
@@ -270,7 +333,97 @@ namespace HopewellClinicApi.Migrations
 
                     b.HasIndex("StaffId");
 
-                    b.ToTable("appointments", (string)null);
+                    b.ToTable("appointments");
+                });
+
+            modelBuilder.Entity("HopewellClinicApi.Models.DoctorSchedule", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<TimeSpan?>("BreakEnd")
+                        .HasColumnType("time");
+
+                    b.Property<TimeSpan?>("BreakStart")
+                        .HasColumnType("time");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("Date")
+                        .HasColumnType("date");
+
+                    b.Property<string>("DayOfWeek")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)");
+
+                    b.Property<Guid>("DoctorId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<TimeSpan>("ShiftEnd")
+                        .HasColumnType("time");
+
+                    b.Property<TimeSpan>("ShiftStart")
+                        .HasColumnType("time");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DoctorId", "DayOfWeek", "Date")
+                        .IsUnique();
+
+                    b.ToTable("DoctorSchedules");
+                });
+
+            modelBuilder.Entity("HopewellClinicApi.Models.DoctorShift", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("id");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("created_at");
+
+                    b.Property<int>("DayOfWeek")
+                        .HasColumnType("int")
+                        .HasColumnName("day_of_week");
+
+                    b.Property<Guid>("DoctorId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("doctor_id");
+
+                    b.Property<TimeSpan>("EndTime")
+                        .HasColumnType("time")
+                        .HasColumnName("end_time");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit")
+                        .HasColumnName("is_active");
+
+                    b.Property<TimeSpan>("StartTime")
+                        .HasColumnType("time")
+                        .HasColumnName("start_time");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DoctorId");
+
+                    b.ToTable("doctor_shifts");
                 });
 
             modelBuilder.Entity("HopewellClinicApi.Models.Patient", b =>
@@ -325,7 +478,7 @@ namespace HopewellClinicApi.Migrations
                         .IsUnique()
                         .HasFilter("[user_id] IS NOT NULL");
 
-                    b.ToTable("patients", (string)null);
+                    b.ToTable("patients");
                 });
 
             modelBuilder.Entity("HopewellClinicApi.Models.Service", b =>
@@ -357,64 +510,69 @@ namespace HopewellClinicApi.Migrations
                         .HasColumnType("nvarchar(255)")
                         .HasColumnName("name");
 
+                    b.Property<decimal?>("Price")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("decimal(10,2)")
+                        .HasColumnName("price");
+
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("datetime2")
                         .HasColumnName("updated_at");
 
                     b.HasKey("Id");
 
-                    b.ToTable("services", (string)null);
+                    b.ToTable("services");
 
                     b.HasData(
                         new
                         {
                             Id = new Guid("550e8400-e29b-41d4-a716-446655440000"),
-                            CreatedAt = new DateTime(2025, 8, 21, 20, 33, 10, 859, DateTimeKind.Utc).AddTicks(9328),
+                            CreatedAt = new DateTime(2025, 9, 14, 13, 11, 37, 194, DateTimeKind.Utc).AddTicks(6710),
                             Description = "General medical consultation and examination",
                             DurationMinutes = 30,
                             IsActive = true,
                             Name = "General Consultation",
-                            UpdatedAt = new DateTime(2025, 8, 21, 20, 33, 10, 859, DateTimeKind.Utc).AddTicks(9329)
+                            UpdatedAt = new DateTime(2025, 9, 14, 13, 11, 37, 194, DateTimeKind.Utc).AddTicks(6711)
                         },
                         new
                         {
                             Id = new Guid("550e8400-e29b-41d4-a716-446655440001"),
-                            CreatedAt = new DateTime(2025, 8, 21, 20, 33, 10, 859, DateTimeKind.Utc).AddTicks(9919),
+                            CreatedAt = new DateTime(2025, 9, 14, 13, 11, 37, 194, DateTimeKind.Utc).AddTicks(6723),
                             Description = "Health services for infants and children",
                             DurationMinutes = 30,
                             IsActive = true,
                             Name = "Pediatrics Consultation",
-                            UpdatedAt = new DateTime(2025, 8, 21, 20, 33, 10, 859, DateTimeKind.Utc).AddTicks(9919)
+                            UpdatedAt = new DateTime(2025, 9, 14, 13, 11, 37, 194, DateTimeKind.Utc).AddTicks(6723)
                         },
                         new
                         {
                             Id = new Guid("550e8400-e29b-41d4-a716-446655440002"),
-                            CreatedAt = new DateTime(2025, 8, 21, 20, 33, 10, 859, DateTimeKind.Utc).AddTicks(9925),
+                            CreatedAt = new DateTime(2025, 9, 14, 13, 11, 37, 194, DateTimeKind.Utc).AddTicks(6726),
                             Description = "Routine dental examination and cleaning",
                             DurationMinutes = 45,
                             IsActive = true,
                             Name = "Dental Checkup",
-                            UpdatedAt = new DateTime(2025, 8, 21, 20, 33, 10, 859, DateTimeKind.Utc).AddTicks(9925)
+                            UpdatedAt = new DateTime(2025, 9, 14, 13, 11, 37, 194, DateTimeKind.Utc).AddTicks(6727)
                         },
                         new
                         {
                             Id = new Guid("550e8400-e29b-41d4-a716-446655440003"),
-                            CreatedAt = new DateTime(2025, 8, 21, 20, 33, 10, 859, DateTimeKind.Utc).AddTicks(9931),
+                            CreatedAt = new DateTime(2025, 9, 14, 13, 11, 37, 194, DateTimeKind.Utc).AddTicks(6752),
                             Description = "Physical therapy for rehabilitation",
                             DurationMinutes = 60,
                             IsActive = true,
                             Name = "Physiotherapy Session",
-                            UpdatedAt = new DateTime(2025, 8, 21, 20, 33, 10, 859, DateTimeKind.Utc).AddTicks(9931)
+                            UpdatedAt = new DateTime(2025, 9, 14, 13, 11, 37, 194, DateTimeKind.Utc).AddTicks(6752)
                         },
                         new
                         {
                             Id = new Guid("550e8400-e29b-41d4-a716-446655440004"),
-                            CreatedAt = new DateTime(2025, 8, 21, 20, 33, 10, 859, DateTimeKind.Utc).AddTicks(9936),
+                            CreatedAt = new DateTime(2025, 9, 14, 13, 11, 37, 194, DateTimeKind.Utc).AddTicks(6755),
                             Description = "Routine immunizations and boosters",
                             DurationMinutes = 20,
                             IsActive = true,
                             Name = "Vaccination",
-                            UpdatedAt = new DateTime(2025, 8, 21, 20, 33, 10, 859, DateTimeKind.Utc).AddTicks(9936)
+                            UpdatedAt = new DateTime(2025, 9, 14, 13, 11, 37, 194, DateTimeKind.Utc).AddTicks(6755)
                         });
                 });
 
@@ -455,25 +613,25 @@ namespace HopewellClinicApi.Migrations
                     b.HasIndex("UserId")
                         .IsUnique();
 
-                    b.ToTable("staff", (string)null);
+                    b.ToTable("staff");
 
                     b.HasData(
                         new
                         {
                             Id = new Guid("550e8400-e29b-41d4-a716-446655441000"),
-                            CreatedAt = new DateTime(2025, 8, 21, 20, 33, 10, 860, DateTimeKind.Utc).AddTicks(436),
+                            CreatedAt = new DateTime(2025, 9, 14, 13, 11, 37, 194, DateTimeKind.Utc).AddTicks(6798),
                             IsActive = true,
                             StaffNumber = "DOC001",
-                            UpdatedAt = new DateTime(2025, 8, 21, 20, 33, 10, 860, DateTimeKind.Utc).AddTicks(437),
+                            UpdatedAt = new DateTime(2025, 9, 14, 13, 11, 37, 194, DateTimeKind.Utc).AddTicks(6799),
                             UserId = new Guid("550e8400-e29b-41d4-a716-446655441001")
                         },
                         new
                         {
                             Id = new Guid("550e8400-e29b-41d4-a716-446655441002"),
-                            CreatedAt = new DateTime(2025, 8, 21, 20, 33, 10, 860, DateTimeKind.Utc).AddTicks(725),
+                            CreatedAt = new DateTime(2025, 9, 14, 13, 11, 37, 194, DateTimeKind.Utc).AddTicks(6804),
                             IsActive = true,
                             StaffNumber = "DOC002",
-                            UpdatedAt = new DateTime(2025, 8, 21, 20, 33, 10, 860, DateTimeKind.Utc).AddTicks(725),
+                            UpdatedAt = new DateTime(2025, 9, 14, 13, 11, 37, 194, DateTimeKind.Utc).AddTicks(6804),
                             UserId = new Guid("550e8400-e29b-41d4-a716-446655441003")
                         });
                 });
@@ -485,13 +643,29 @@ namespace HopewellClinicApi.Migrations
                         .HasColumnType("uniqueidentifier")
                         .HasColumnName("id");
 
+                    b.Property<Guid?>("AppointmentId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("appointment_id");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2")
                         .HasColumnName("created_at");
 
+                    b.Property<DateTime?>("Date")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("date");
+
                     b.Property<int>("DayOfWeek")
                         .HasColumnType("int")
                         .HasColumnName("day_of_week");
+
+                    b.Property<Guid?>("DoctorId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("doctor_id");
+
+                    b.Property<int>("Duration")
+                        .HasColumnType("int")
+                        .HasColumnName("duration");
 
                     b.Property<TimeOnly>("EndTime")
                         .HasColumnType("time")
@@ -500,6 +674,10 @@ namespace HopewellClinicApi.Migrations
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit")
                         .HasColumnName("is_active");
+
+                    b.Property<bool>("IsAvailable")
+                        .HasColumnType("bit")
+                        .HasColumnName("is_available");
 
                     b.Property<bool>("IsBooked")
                         .HasColumnType("bit");
@@ -510,156 +688,190 @@ namespace HopewellClinicApi.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("time_slots", (string)null);
+                    b.HasIndex("AppointmentId");
+
+                    b.HasIndex("DoctorId");
+
+                    b.ToTable("time_slots");
 
                     b.HasData(
                         new
                         {
                             Id = new Guid("550e8400-e29b-41d4-a716-446655443101"),
-                            CreatedAt = new DateTime(2025, 8, 21, 20, 33, 10, 860, DateTimeKind.Utc).AddTicks(1004),
+                            CreatedAt = new DateTime(2025, 9, 14, 13, 11, 37, 194, DateTimeKind.Utc).AddTicks(6838),
                             DayOfWeek = 1,
+                            Duration = 30,
                             EndTime = new TimeOnly(10, 0, 0),
                             IsActive = true,
+                            IsAvailable = true,
                             IsBooked = false,
                             StartTime = new TimeOnly(9, 0, 0)
                         },
                         new
                         {
                             Id = new Guid("550e8400-e29b-41d4-a716-446655443102"),
-                            CreatedAt = new DateTime(2025, 8, 21, 20, 33, 10, 860, DateTimeKind.Utc).AddTicks(1593),
+                            CreatedAt = new DateTime(2025, 9, 14, 13, 11, 37, 194, DateTimeKind.Utc).AddTicks(6842),
                             DayOfWeek = 1,
+                            Duration = 30,
                             EndTime = new TimeOnly(11, 0, 0),
                             IsActive = true,
+                            IsAvailable = true,
                             IsBooked = false,
                             StartTime = new TimeOnly(10, 0, 0)
                         },
                         new
                         {
                             Id = new Guid("550e8400-e29b-41d4-a716-446655443103"),
-                            CreatedAt = new DateTime(2025, 8, 21, 20, 33, 10, 860, DateTimeKind.Utc).AddTicks(1600),
+                            CreatedAt = new DateTime(2025, 9, 14, 13, 11, 37, 194, DateTimeKind.Utc).AddTicks(6845),
                             DayOfWeek = 1,
+                            Duration = 30,
                             EndTime = new TimeOnly(12, 0, 0),
                             IsActive = true,
+                            IsAvailable = true,
                             IsBooked = false,
                             StartTime = new TimeOnly(11, 0, 0)
                         },
                         new
                         {
                             Id = new Guid("550e8400-e29b-41d4-a716-446655443201"),
-                            CreatedAt = new DateTime(2025, 8, 21, 20, 33, 10, 860, DateTimeKind.Utc).AddTicks(1605),
+                            CreatedAt = new DateTime(2025, 9, 14, 13, 11, 37, 194, DateTimeKind.Utc).AddTicks(6848),
                             DayOfWeek = 2,
+                            Duration = 30,
                             EndTime = new TimeOnly(10, 0, 0),
                             IsActive = true,
+                            IsAvailable = true,
                             IsBooked = false,
                             StartTime = new TimeOnly(9, 0, 0)
                         },
                         new
                         {
                             Id = new Guid("550e8400-e29b-41d4-a716-446655443202"),
-                            CreatedAt = new DateTime(2025, 8, 21, 20, 33, 10, 860, DateTimeKind.Utc).AddTicks(1611),
+                            CreatedAt = new DateTime(2025, 9, 14, 13, 11, 37, 194, DateTimeKind.Utc).AddTicks(6854),
                             DayOfWeek = 2,
+                            Duration = 30,
                             EndTime = new TimeOnly(11, 0, 0),
                             IsActive = true,
+                            IsAvailable = true,
                             IsBooked = false,
                             StartTime = new TimeOnly(10, 0, 0)
                         },
                         new
                         {
                             Id = new Guid("550e8400-e29b-41d4-a716-446655443203"),
-                            CreatedAt = new DateTime(2025, 8, 21, 20, 33, 10, 860, DateTimeKind.Utc).AddTicks(1615),
+                            CreatedAt = new DateTime(2025, 9, 14, 13, 11, 37, 194, DateTimeKind.Utc).AddTicks(6857),
                             DayOfWeek = 2,
+                            Duration = 30,
                             EndTime = new TimeOnly(12, 0, 0),
                             IsActive = true,
+                            IsAvailable = true,
                             IsBooked = false,
                             StartTime = new TimeOnly(11, 0, 0)
                         },
                         new
                         {
                             Id = new Guid("550e8400-e29b-41d4-a716-446655443301"),
-                            CreatedAt = new DateTime(2025, 8, 21, 20, 33, 10, 860, DateTimeKind.Utc).AddTicks(1620),
+                            CreatedAt = new DateTime(2025, 9, 14, 13, 11, 37, 194, DateTimeKind.Utc).AddTicks(6859),
                             DayOfWeek = 3,
+                            Duration = 30,
                             EndTime = new TimeOnly(10, 0, 0),
                             IsActive = true,
+                            IsAvailable = true,
                             IsBooked = false,
                             StartTime = new TimeOnly(9, 0, 0)
                         },
                         new
                         {
                             Id = new Guid("550e8400-e29b-41d4-a716-446655443302"),
-                            CreatedAt = new DateTime(2025, 8, 21, 20, 33, 10, 860, DateTimeKind.Utc).AddTicks(1626),
+                            CreatedAt = new DateTime(2025, 9, 14, 13, 11, 37, 194, DateTimeKind.Utc).AddTicks(6862),
                             DayOfWeek = 3,
+                            Duration = 30,
                             EndTime = new TimeOnly(11, 0, 0),
                             IsActive = true,
+                            IsAvailable = true,
                             IsBooked = false,
                             StartTime = new TimeOnly(10, 0, 0)
                         },
                         new
                         {
                             Id = new Guid("550e8400-e29b-41d4-a716-446655443303"),
-                            CreatedAt = new DateTime(2025, 8, 21, 20, 33, 10, 860, DateTimeKind.Utc).AddTicks(1631),
+                            CreatedAt = new DateTime(2025, 9, 14, 13, 11, 37, 194, DateTimeKind.Utc).AddTicks(6864),
                             DayOfWeek = 3,
+                            Duration = 30,
                             EndTime = new TimeOnly(12, 0, 0),
                             IsActive = true,
+                            IsAvailable = true,
                             IsBooked = false,
                             StartTime = new TimeOnly(11, 0, 0)
                         },
                         new
                         {
                             Id = new Guid("550e8400-e29b-41d4-a716-446655443401"),
-                            CreatedAt = new DateTime(2025, 8, 21, 20, 33, 10, 860, DateTimeKind.Utc).AddTicks(1635),
+                            CreatedAt = new DateTime(2025, 9, 14, 13, 11, 37, 194, DateTimeKind.Utc).AddTicks(6866),
                             DayOfWeek = 4,
+                            Duration = 30,
                             EndTime = new TimeOnly(10, 0, 0),
                             IsActive = true,
+                            IsAvailable = true,
                             IsBooked = false,
                             StartTime = new TimeOnly(9, 0, 0)
                         },
                         new
                         {
                             Id = new Guid("550e8400-e29b-41d4-a716-446655443402"),
-                            CreatedAt = new DateTime(2025, 8, 21, 20, 33, 10, 860, DateTimeKind.Utc).AddTicks(1640),
+                            CreatedAt = new DateTime(2025, 9, 14, 13, 11, 37, 194, DateTimeKind.Utc).AddTicks(6869),
                             DayOfWeek = 4,
+                            Duration = 30,
                             EndTime = new TimeOnly(11, 0, 0),
                             IsActive = true,
+                            IsAvailable = true,
                             IsBooked = false,
                             StartTime = new TimeOnly(10, 0, 0)
                         },
                         new
                         {
                             Id = new Guid("550e8400-e29b-41d4-a716-446655443403"),
-                            CreatedAt = new DateTime(2025, 8, 21, 20, 33, 10, 860, DateTimeKind.Utc).AddTicks(1644),
+                            CreatedAt = new DateTime(2025, 9, 14, 13, 11, 37, 194, DateTimeKind.Utc).AddTicks(6871),
                             DayOfWeek = 4,
+                            Duration = 30,
                             EndTime = new TimeOnly(12, 0, 0),
                             IsActive = true,
+                            IsAvailable = true,
                             IsBooked = false,
                             StartTime = new TimeOnly(11, 0, 0)
                         },
                         new
                         {
                             Id = new Guid("550e8400-e29b-41d4-a716-446655443501"),
-                            CreatedAt = new DateTime(2025, 8, 21, 20, 33, 10, 860, DateTimeKind.Utc).AddTicks(1650),
+                            CreatedAt = new DateTime(2025, 9, 14, 13, 11, 37, 194, DateTimeKind.Utc).AddTicks(6876),
                             DayOfWeek = 5,
+                            Duration = 30,
                             EndTime = new TimeOnly(10, 0, 0),
                             IsActive = true,
+                            IsAvailable = true,
                             IsBooked = false,
                             StartTime = new TimeOnly(9, 0, 0)
                         },
                         new
                         {
                             Id = new Guid("550e8400-e29b-41d4-a716-446655443502"),
-                            CreatedAt = new DateTime(2025, 8, 21, 20, 33, 10, 860, DateTimeKind.Utc).AddTicks(1718),
+                            CreatedAt = new DateTime(2025, 9, 14, 13, 11, 37, 194, DateTimeKind.Utc).AddTicks(6879),
                             DayOfWeek = 5,
+                            Duration = 30,
                             EndTime = new TimeOnly(11, 0, 0),
                             IsActive = true,
+                            IsAvailable = true,
                             IsBooked = false,
                             StartTime = new TimeOnly(10, 0, 0)
                         },
                         new
                         {
                             Id = new Guid("550e8400-e29b-41d4-a716-446655443503"),
-                            CreatedAt = new DateTime(2025, 8, 21, 20, 33, 10, 860, DateTimeKind.Utc).AddTicks(1723),
+                            CreatedAt = new DateTime(2025, 9, 14, 13, 11, 37, 194, DateTimeKind.Utc).AddTicks(6881),
                             DayOfWeek = 5,
+                            Duration = 30,
                             EndTime = new TimeOnly(12, 0, 0),
                             IsActive = true,
+                            IsAvailable = true,
                             IsBooked = false,
                             StartTime = new TimeOnly(11, 0, 0)
                         });
@@ -758,6 +970,11 @@ namespace HopewellClinicApi.Migrations
                         {
                             UserId = new Guid("550e8400-e29b-41d4-a716-446655441003"),
                             RoleId = new Guid("550e8400-e29b-41d4-a716-446655449002")
+                        },
+                        new
+                        {
+                            UserId = new Guid("550e8400-e29b-41d4-a716-446655441004"),
+                            RoleId = new Guid("550e8400-e29b-41d4-a716-446655449004")
                         });
                 });
 
@@ -806,6 +1023,28 @@ namespace HopewellClinicApi.Migrations
                     b.Navigation("Staff");
                 });
 
+            modelBuilder.Entity("HopewellClinicApi.Models.DoctorSchedule", b =>
+                {
+                    b.HasOne("HopewellClinicApi.Models.Staff", "Doctor")
+                        .WithMany()
+                        .HasForeignKey("DoctorId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Doctor");
+                });
+
+            modelBuilder.Entity("HopewellClinicApi.Models.DoctorShift", b =>
+                {
+                    b.HasOne("HopewellClinicApi.Models.ApplicationUser", "Doctor")
+                        .WithMany()
+                        .HasForeignKey("DoctorId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Doctor");
+                });
+
             modelBuilder.Entity("HopewellClinicApi.Models.Patient", b =>
                 {
                     b.HasOne("HopewellClinicApi.Models.ApplicationUser", "User")
@@ -822,6 +1061,21 @@ namespace HopewellClinicApi.Migrations
                         .HasForeignKey("HopewellClinicApi.Models.Staff", "UserId");
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("HopewellClinicApi.Models.TimeSlot", b =>
+                {
+                    b.HasOne("HopewellClinicApi.Models.Appointment", "Appointment")
+                        .WithMany()
+                        .HasForeignKey("AppointmentId");
+
+                    b.HasOne("HopewellClinicApi.Models.Staff", "Doctor")
+                        .WithMany()
+                        .HasForeignKey("DoctorId");
+
+                    b.Navigation("Appointment");
+
+                    b.Navigation("Doctor");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<System.Guid>", b =>

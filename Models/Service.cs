@@ -21,6 +21,9 @@ namespace HopewellClinicApi.Models
         [Column("duration_minutes")]
         public int DurationMinutes { get; set; } = 30;
 
+        [Column("price")]
+        public decimal? Price { get; set; }
+
         [Column("is_active")]
         public bool IsActive { get; set; } = true;
 

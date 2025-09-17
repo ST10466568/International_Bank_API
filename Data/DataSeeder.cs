@@ -172,18 +172,18 @@ public static class DataSeeder
             new IdentityUserRole<Guid> { UserId = testPatientUser.Id, RoleId = roles.First(r => r.Name == "patient").Id }
         );
 
-        // Add test patient
-        modelBuilder.Entity<Patient>().HasData(
-            new Patient
-            {
-                Id = Guid.Parse("550e8400-e29b-41d4-a716-446655442000"),
-                UserId = testPatientUser.Id,
-                PatientNumber = "PAT001",
-                DateOfBirth = new DateTime(1990, 1, 1),
-                Address = "123 Test Street, Test City",
-                EmergencyContactName = "Jane Doe",
-                EmergencyContactPhone = "+27123456792"
-            }
-        );
+        // Add test patient - Commented out to avoid migration conflicts
+        // modelBuilder.Entity<Patient>().HasData(
+        //     new Patient
+        //     {
+        //         Id = Guid.Parse("550e8400-e29b-41d4-a716-446655442000"),
+        //         UserId = testPatientUser.Id,
+        //         PatientNumber = "PAT001",
+        //         DateOfBirth = new DateTime(1990, 1, 1),
+        //         Address = "123 Test Street, Test City",
+        //         EmergencyContactName = "Jane Doe",
+        //         EmergencyContactPhone = "+27123456792"
+        //     }
+        // );
     }
 }

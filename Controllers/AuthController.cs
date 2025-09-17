@@ -7,6 +7,7 @@ using HopewellClinicApi.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;
+using HopewellClinicApi.Services;
 
 namespace HopewellClinicApi.Controllers
 {
@@ -16,15 +17,18 @@ namespace HopewellClinicApi.Controllers
     {
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly HopewellDbContext _context;
+        private readonly JwtService _jwtService;
         private static readonly Dictionary<string, UserSession> _activeSessions = new();
 
-        public AuthController(UserManager<ApplicationUser> userManager, HopewellDbContext context)
+        public AuthController(UserManager<ApplicationUser> userManager, HopewellDbContext context, JwtService jwtService)
         {
             _userManager = userManager;
             _context = context;
+            _jwtService = jwtService;
         }
 
         [HttpPost("register")]
+        [AllowAnonymous]
         public async Task<IActionResult> Register(RegisterPatientDto request)
         {
             var userExists = await _userManager.FindByEmailAsync(request.Email);
@@ -70,6 +74,7 @@ namespace HopewellClinicApi.Controllers
         }
 
         [HttpPost("login")]
+        [AllowAnonymous]
         public async Task<IActionResult> Login(LoginDto request)
         {
             var user = await _userManager.FindByEmailAsync(request.Email);
@@ -84,23 +89,13 @@ namespace HopewellClinicApi.Controllers
                 return Unauthorized(new { error = "Invalid credentials." });
             }
 
-            var sessionToken = GenerateSessionToken();
+            // Generate JWT token
+            var jwtToken = await _jwtService.GenerateToken(user);
             var userRoles = await _userManager.GetRolesAsync(user);
-
-            var session = new UserSession
-            {
-                UserId = user.Id,
-                Email = user.Email!,
-                Roles = userRoles.ToList(),
-                CreatedAt = DateTime.UtcNow,
-                ExpiresAt = DateTime.UtcNow.AddHours(24)
-            };
-
-            _activeSessions[sessionToken] = session;
 
             return Ok(new
             {
-                token = sessionToken,
+                token = jwtToken,
                 user = new
                 {
                     id = user.Id,
@@ -161,6 +156,22 @@ namespace HopewellClinicApi.Controllers
             return Convert.ToBase64String(randomBytes);
         }
 
+        public static UserSession? GetSessionFromToken(string token)
+        {
+            if (!_activeSessions.TryGetValue(token, out var session))
+            {
+                return null;
+            }
+
+            if (session.ExpiresAt < DateTime.UtcNow)
+            {
+                _activeSessions.Remove(token);
+                return null;
+            }
+
+            return session;
+        }
+
         private static UserSession? GetSessionFromHeader(HttpRequest request, out IActionResult? errorResult)
         {
             errorResult = null;
@@ -173,20 +184,7 @@ namespace HopewellClinicApi.Controllers
             }
 
             var token = value.Substring("Bearer ".Length);
-            if (!_activeSessions.TryGetValue(token, out var session))
-            {
-                errorResult = new UnauthorizedObjectResult(new { error = "Invalid or expired token" });
-                return null;
-            }
-
-            if (session.ExpiresAt < DateTime.UtcNow)
-            {
-                _activeSessions.Remove(token);
-                errorResult = new UnauthorizedObjectResult(new { error = "Token expired" });
-                return null;
-            }
-
-            return session;
+            return GetSessionFromToken(token);
         }
     }
 
