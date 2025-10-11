@@ -27,6 +27,8 @@ namespace HopewellClinicApi.DTOs
     public class DoctorOnDutyResponse
     {
         public List<DoctorOnDutyDto> Doctors { get; set; } = new();
+        public DateTime RequestedDate { get; set; }
+        public int TotalAvailableDoctors { get; set; }
     }
 
     public class DoctorOnDutyDto
@@ -34,12 +36,13 @@ namespace HopewellClinicApi.DTOs
         public Guid Id { get; set; }
         public string FirstName { get; set; } = string.Empty;
         public string LastName { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
         public string Specialty { get; set; } = string.Empty;
         public double Rating { get; set; }
         public TimeSpan ShiftStart { get; set; }
         public TimeSpan ShiftEnd { get; set; }
         public bool IsAvailable { get; set; }
-        public List<string> Services { get; set; } = new();
+        public List<ServiceDto> Services { get; set; } = new();
     }
 
     // Step 3: Available time slots by doctor

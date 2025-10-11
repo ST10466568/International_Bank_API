@@ -161,6 +161,9 @@ try
         // Seed patients
         await DbInitializer.SeedPatients(db, userManager);
         
+        // Seed staff
+        await DbInitializer.SeedStaff(db, userManager);
+        
         // Seed services
         await DbInitializer.SeedServices(db);
         
@@ -175,7 +178,7 @@ catch (Exception ex)
 }
 
 // For Azure App Service, don't specify URL - let the hosting environment handle it
-// For local development, use port 5002
+// For local development, use port 5004
 if (app.Environment.IsDevelopment())
 {
     app.Run("http://localhost:5002");

@@ -16,6 +16,134 @@ namespace HopewellClinicApi.Services
             _logger = logger;
         }
 
+        // Get doctor by ID
+        public async Task<Staff?> GetDoctorAsync(Guid doctorId)
+        {
+            return await _context.Staff
+                .Include(s => s.User)
+                .FirstOrDefaultAsync(s => s.Id == doctorId);
+        }
+
+        // Get doctor's weekly shifts (simplified version for frontend)
+        public async Task<List<DoctorScheduleDto>> GetDoctorWeeklyShiftsAsync(Guid doctorId)
+        {
+            var doctor = await GetDoctorAsync(doctorId);
+            if (doctor == null)
+            {
+                throw new ArgumentException("Doctor not found");
+            }
+
+            // Get or create default weekly schedule
+            var weeklyShifts = new List<DoctorScheduleDto>();
+            var daysOfWeek = new[] { "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday" };
+
+            foreach (var dayOfWeek in daysOfWeek)
+            {
+                var existingSchedule = await _context.DoctorSchedules
+                    .Where(ds => ds.DoctorId == doctorId && ds.DayOfWeek == dayOfWeek)
+                    .OrderBy(ds => ds.Date)
+                    .FirstOrDefaultAsync();
+
+                if (existingSchedule != null)
+                {
+                    weeklyShifts.Add(new DoctorScheduleDto
+                    {
+                        Id = existingSchedule.Id,
+                        DoctorId = existingSchedule.DoctorId,
+                        DayOfWeek = existingSchedule.DayOfWeek,
+                        IsActive = existingSchedule.IsActive,
+                        ShiftStart = existingSchedule.ShiftStart,
+                        ShiftEnd = existingSchedule.ShiftEnd,
+                        BreakStart = existingSchedule.BreakStart,
+                        BreakEnd = existingSchedule.BreakEnd,
+                        CreatedAt = existingSchedule.CreatedAt,
+                        UpdatedAt = existingSchedule.UpdatedAt
+                    });
+                }
+                else
+                {
+                    // Create default schedule for this day
+                    var isWeekend = dayOfWeek == "Saturday" || dayOfWeek == "Sunday";
+                    weeklyShifts.Add(new DoctorScheduleDto
+                    {
+                        Id = Guid.NewGuid(),
+                        DoctorId = doctorId,
+                        DayOfWeek = dayOfWeek,
+                        IsActive = !isWeekend, // Weekends inactive by default
+                        ShiftStart = new TimeSpan(9, 0, 0), // 09:00
+                        ShiftEnd = new TimeSpan(17, 0, 0), // 17:00
+                        BreakStart = new TimeSpan(12, 0, 0), // 12:00
+                        BreakEnd = new TimeSpan(13, 0, 0), // 13:00
+                        CreatedAt = DateTime.UtcNow,
+                        UpdatedAt = DateTime.UtcNow
+                    });
+                }
+            }
+
+            return weeklyShifts;
+        }
+
+        // Update doctor's weekly shifts
+        public async Task<List<DoctorScheduleDto>> UpdateDoctorWeeklyShiftsAsync(Guid doctorId, List<DoctorShiftDto> shifts)
+        {
+            var doctor = await GetDoctorAsync(doctorId);
+            if (doctor == null)
+            {
+                throw new ArgumentException("Doctor not found");
+            }
+
+            // Remove existing schedules for this doctor
+            var existingSchedules = await _context.DoctorSchedules
+                .Where(ds => ds.DoctorId == doctorId)
+                .ToListAsync();
+
+            _context.DoctorSchedules.RemoveRange(existingSchedules);
+
+            // Create new schedules
+            var newSchedules = new List<DoctorSchedule>();
+            var daysOfWeek = new[] { "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday" };
+
+            foreach (var dayOfWeek in daysOfWeek)
+            {
+                var shiftDto = shifts.FirstOrDefault(s => s.DayOfWeek == dayOfWeek);
+                
+                if (shiftDto != null && TimeSpan.TryParse(shiftDto.StartTime, out var startTime) && 
+                    TimeSpan.TryParse(shiftDto.EndTime, out var endTime))
+                {
+                    // Create schedule for the next 30 days for this day of week
+                    var startDate = DateTime.Today;
+                    for (int i = 0; i < 30; i++)
+                    {
+                        var scheduleDate = startDate.AddDays(i);
+                        if (scheduleDate.DayOfWeek.ToString() == dayOfWeek)
+                        {
+                            var schedule = new DoctorSchedule
+                            {
+                                Id = Guid.NewGuid(),
+                                DoctorId = doctorId,
+                                Date = scheduleDate,
+                                DayOfWeek = dayOfWeek,
+                                ShiftStart = startTime,
+                                ShiftEnd = endTime,
+                                IsActive = shiftDto.IsActive,
+                                BreakStart = new TimeSpan(12, 0, 0), // Default break
+                                BreakEnd = new TimeSpan(13, 0, 0),
+                                CreatedAt = DateTime.UtcNow,
+                                UpdatedAt = DateTime.UtcNow
+                            };
+                            newSchedules.Add(schedule);
+                        }
+                    }
+                }
+            }
+
+            _context.DoctorSchedules.AddRange(newSchedules);
+            await _context.SaveChangesAsync();
+
+            // Return the updated weekly shifts
+            return await GetDoctorWeeklyShiftsAsync(doctorId);
+        }
+
         // Get doctor's weekly schedule
         public async Task<DoctorScheduleManagementResponse> GetDoctorScheduleAsync(Guid doctorId, DateTime? startDate = null, DateTime? endDate = null)
         {

@@ -22,6 +22,91 @@ namespace HopewellClinicApi.Controllers
         }
 
         /// <summary>
+        /// Get doctor's weekly shift schedule (Frontend compatible)
+        /// </summary>
+        [HttpGet("{id}/shifts")]
+        [AllowAnonymous]
+        public async Task<ActionResult<IEnumerable<object>>> GetDoctorShifts(Guid id)
+        {
+            try
+            {
+                var doctor = await _scheduleService.GetDoctorAsync(id);
+                if (doctor == null)
+                {
+                    return NotFound(new { error = "DOCTOR_NOT_FOUND", message = "Doctor not found" });
+                }
+
+                var shifts = await _scheduleService.GetDoctorWeeklyShiftsAsync(id);
+                
+                var shiftResults = shifts.Select(s => new
+                {
+                    id = s.Id,
+                    dayOfWeek = s.DayOfWeek,
+                    startTime = s.ShiftStart.ToString(@"hh\:mm"),
+                    endTime = s.ShiftEnd.ToString(@"hh\:mm"),
+                    isActive = s.IsActive,
+                    doctorId = s.DoctorId
+                }).ToList();
+
+                return Ok(shiftResults);
+            }
+            catch (ArgumentException ex)
+            {
+                return NotFound(new { error = "DOCTOR_NOT_FOUND", message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting doctor shifts for doctor: {DoctorId}", id);
+                return StatusCode(500, new { error = "INTERNAL_ERROR", message = "An error occurred while retrieving the shifts" });
+            }
+        }
+
+        /// <summary>
+        /// Update doctor's weekly shift schedule (Frontend compatible)
+        /// </summary>
+        [HttpPut("{id}/shifts")]
+        [JwtAuthorize]
+        public async Task<ActionResult<object>> UpdateDoctorShifts(Guid id, [FromBody] UpdateDoctorShiftsRequest request)
+        {
+            try
+            {
+                var doctor = await _scheduleService.GetDoctorAsync(id);
+                if (doctor == null)
+                {
+                    return NotFound(new { error = "DOCTOR_NOT_FOUND", message = "Doctor not found" });
+                }
+
+                var updatedShifts = await _scheduleService.UpdateDoctorWeeklyShiftsAsync(id, request.Shifts);
+                
+                var shiftResults = updatedShifts.Select(s => new
+                {
+                    id = s.Id,
+                    dayOfWeek = s.DayOfWeek,
+                    startTime = s.ShiftStart.ToString(@"hh\:mm"),
+                    endTime = s.ShiftEnd.ToString(@"hh\:mm"),
+                    isActive = s.IsActive,
+                    doctorId = s.DoctorId
+                }).ToList();
+
+                return Ok(new
+                {
+                    success = true,
+                    message = "Shift schedule updated successfully",
+                    updatedShifts = shiftResults
+                });
+            }
+            catch (ArgumentException ex)
+            {
+                return NotFound(new { error = "DOCTOR_NOT_FOUND", message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating doctor shifts for doctor: {DoctorId}", id);
+                return StatusCode(500, new { error = "INTERNAL_ERROR", message = "An error occurred while updating the shifts" });
+            }
+        }
+
+        /// <summary>
         /// Get doctor's weekly schedule
         /// </summary>
         [HttpGet("{id}/schedule")]

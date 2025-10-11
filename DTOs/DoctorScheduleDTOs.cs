@@ -48,6 +48,28 @@ namespace HopewellClinicApi.DTOs
         public List<DoctorScheduleDto> WeeklySchedule { get; set; } = new();
     }
 
+    // New DTOs for frontend-compatible endpoints
+    public class UpdateDoctorShiftsRequest
+    {
+        [Required]
+        public List<DoctorShiftDto> Shifts { get; set; } = new();
+    }
+
+    public class DoctorShiftDto
+    {
+        [Required]
+        public string DayOfWeek { get; set; } = string.Empty;
+        
+        [Required]
+        public string StartTime { get; set; } = string.Empty; // Format: "HH:mm"
+        
+        [Required]
+        public string EndTime { get; set; } = string.Empty; // Format: "HH:mm"
+        
+        [Required]
+        public bool IsActive { get; set; }
+    }
+
     // Doctor availability DTOs
     public class DoctorAvailabilityRequest
     {

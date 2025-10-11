@@ -21,6 +21,167 @@ public class AppointmentsController : ControllerBase
         }
 
         /// <summary>
+        /// Get appointments for a specific doctor on a specific date (Anonymous version for frontend)
+        /// </summary>
+        [HttpGet("doctor/{doctorId}/date/{date}")]
+        [AllowAnonymous]
+        public async Task<ActionResult<IEnumerable<object>>> GetDoctorAppointmentsByDate(string doctorId, string date)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(doctorId))
+                {
+                    return BadRequest(new { error = "Doctor ID is required" });
+                }
+
+                if (string.IsNullOrEmpty(date))
+                {
+                    return BadRequest(new { error = "Date is required" });
+                }
+
+                if (!Guid.TryParse(doctorId, out var doctorGuid))
+                {
+                    return BadRequest(new { error = "Invalid doctor ID format" });
+                }
+
+                if (!DateTime.TryParse(date, out var appointmentDate))
+                {
+                    return BadRequest(new { error = "Invalid date format. Use YYYY-MM-DD" });
+                }
+
+                // Verify doctor exists
+                var doctor = await _context.Staff
+                    .Include(s => s.User)
+                    .FirstOrDefaultAsync(s => s.Id == doctorGuid);
+
+                if (doctor == null)
+                {
+                    return NotFound(new { error = "Doctor not found" });
+                }
+
+                var appointments = await _context.Appointments
+                    .Where(a => (a.StaffId == doctorGuid || a.DoctorId == doctorGuid) && 
+                               a.AppointmentDate == appointmentDate.Date &&
+                               (a.Status == "pending" || a.Status == "confirmed" || a.Status == "approved" || a.Status == "scheduled"))
+                    .Include(a => a.Service)
+                    .Include(a => a.Patient)
+                        .ThenInclude(p => p.User)
+                    .Include(a => a.Staff)
+                        .ThenInclude(s => s.User)
+                    .OrderBy(a => a.StartTime)
+                    .ToListAsync();
+
+                var appointmentResults = appointments.Select(a => new
+                {
+                    id = a.Id,
+                    appointmentDate = a.AppointmentDate.ToString("yyyy-MM-dd"),
+                    startTime = a.StartTime.ToString("HH:mm"),
+                    endTime = a.EndTime.ToString("HH:mm"),
+                    status = a.Status,
+                    notes = a.Notes,
+                    staffId = a.StaffId,
+                    doctorId = a.DoctorId,
+                    patient = new
+                    {
+                        id = a.Patient.Id,
+                        firstName = a.Patient.User.FirstName,
+                        lastName = a.Patient.User.LastName,
+                        email = a.Patient.User.Email,
+                        phone = a.Patient.User.PhoneNumber
+                    },
+                    service = new
+                    {
+                        id = a.Service.Id,
+                        name = a.Service.Name,
+                        durationMinutes = a.Service.DurationMinutes,
+                        price = a.Service.Price
+                    },
+                    staff = a.Staff != null ? new
+                    {
+                        id = a.Staff.Id,
+                        staffId = a.Staff.Id,
+                        userId = a.Staff.UserId,
+                        firstName = a.Staff.User.FirstName,
+                        lastName = a.Staff.User.LastName,
+                        email = a.Staff.User.Email,
+                        role = "doctor"
+                    } : null
+                }).ToList();
+
+                // Return the format expected by frontend
+                return Ok(new
+                {
+                    appointments = appointmentResults,
+                    totalAppointmentsFound = appointments.Count,
+                    doctorId = doctorGuid,
+                    requestedDate = appointmentDate.ToString("yyyy-MM-dd")
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = "Internal server error", message = ex.Message });
+            }
+        }
+
+        /// <summary>
+        /// Debug endpoint to check if doctor exists and has any appointments
+        /// </summary>
+        [HttpGet("debug-doctor/{doctorId}")]
+        [AllowAnonymous]
+        public async Task<ActionResult<object>> DebugDoctorAppointments(string doctorId)
+        {
+            try
+            {
+                if (!Guid.TryParse(doctorId, out var doctorGuid))
+                {
+                    return BadRequest(new { error = "Invalid doctor ID format" });
+                }
+
+                // Check if doctor exists
+                var doctor = await _context.Staff
+                    .Include(s => s.User)
+                    .FirstOrDefaultAsync(s => s.Id == doctorGuid);
+
+                if (doctor == null)
+                {
+                    return NotFound(new { error = "Doctor not found", doctorId = doctorGuid });
+                }
+
+                // Get all appointments for this doctor
+                var allAppointments = await _context.Appointments
+                    .Where(a => a.StaffId == doctorGuid || a.DoctorId == doctorGuid)
+                    .Select(a => new
+                    {
+                        id = a.Id,
+                        appointmentDate = a.AppointmentDate.ToString("yyyy-MM-dd"),
+                        startTime = a.StartTime.ToString("HH:mm"),
+                        endTime = a.EndTime.ToString("HH:mm"),
+                        status = a.Status,
+                        staffId = a.StaffId,
+                        doctorId = a.DoctorId
+                    })
+                    .ToListAsync();
+
+                return Ok(new
+                {
+                    doctor = new
+                    {
+                        id = doctor.Id,
+                        firstName = doctor.User.FirstName,
+                        lastName = doctor.User.LastName,
+                        isActive = doctor.IsActive
+                    },
+                    totalAppointments = allAppointments.Count,
+                    appointments = allAppointments
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = "Internal server error", message = ex.Message });
+            }
+        }
+
+        /// <summary>
         /// Get appointments for a specific doctor
         /// </summary>
         [HttpGet("doctor/{doctorId}")]
@@ -73,6 +234,197 @@ public class AppointmentsController : ControllerBase
                         name = a.Service.Name,
                         durationMinutes = a.Service.DurationMinutes
                     }
+                }).ToList();
+
+                return Ok(appointmentResults);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = "Internal server error", message = ex.Message });
+            }
+        }
+
+        /// <summary>
+        /// Get appointments with pagination and search (Enhanced version)
+        /// </summary>
+        [HttpGet("search")]
+        [AllowAnonymous]
+        public async Task<ActionResult<object>> SearchAppointments(
+            [FromQuery] string? doctorId = null,
+            [FromQuery] string? date = null,
+            [FromQuery] string? status = null,
+            [FromQuery] string? search = null,
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 10)
+        {
+            try
+            {
+                var query = _context.Appointments
+                    .Include(a => a.Service)
+                    .Include(a => a.Patient)
+                        .ThenInclude(p => p.User)
+                    .Include(a => a.Staff)
+                        .ThenInclude(s => s.User)
+                    .AsQueryable();
+
+                // Filter by doctor
+                if (!string.IsNullOrEmpty(doctorId) && Guid.TryParse(doctorId, out var doctorGuid))
+                {
+                    query = query.Where(a => a.StaffId == doctorGuid || a.DoctorId == doctorGuid);
+                }
+
+                // Filter by date
+                if (!string.IsNullOrEmpty(date) && DateTime.TryParse(date, out var appointmentDate))
+                {
+                    query = query.Where(a => a.AppointmentDate == appointmentDate.Date);
+                }
+
+                // Filter by status
+                if (!string.IsNullOrEmpty(status))
+                {
+                    query = query.Where(a => a.Status == status);
+                }
+
+                // Search functionality
+                if (!string.IsNullOrEmpty(search))
+                {
+                    query = query.Where(a => 
+                        a.Patient.User.FirstName.Contains(search) ||
+                        a.Patient.User.LastName.Contains(search) ||
+                        a.Service.Name.Contains(search) ||
+                        a.Notes.Contains(search));
+                }
+
+                // Get total count for pagination
+                var totalCount = await query.CountAsync();
+
+                // Apply pagination
+                var appointments = await query
+                    .OrderBy(a => a.AppointmentDate)
+                    .ThenBy(a => a.StartTime)
+                    .Skip((page - 1) * pageSize)
+                    .Take(pageSize)
+                    .ToListAsync();
+
+                var appointmentResults = appointments.Select(a => new
+                {
+                    id = a.Id,
+                    appointmentDate = a.AppointmentDate.ToString("yyyy-MM-dd"),
+                    startTime = a.StartTime.ToString("HH:mm"),
+                    endTime = a.EndTime.ToString("HH:mm"),
+                    status = a.Status,
+                    notes = a.Notes,
+                    staffId = a.StaffId,
+                    doctorId = a.DoctorId,
+                    patient = new
+                    {
+                        id = a.Patient.Id,
+                        firstName = a.Patient.User.FirstName,
+                        lastName = a.Patient.User.LastName,
+                        email = a.Patient.User.Email,
+                        phone = a.Patient.User.PhoneNumber
+                    },
+                    service = new
+                    {
+                        id = a.Service.Id,
+                        name = a.Service.Name,
+                        durationMinutes = a.Service.DurationMinutes,
+                        price = a.Service.Price
+                    },
+                    staff = a.Staff != null ? new
+                    {
+                        id = a.Staff.Id,
+                        staffId = a.Staff.Id,
+                        userId = a.Staff.UserId,
+                        firstName = a.Staff.User.FirstName,
+                        lastName = a.Staff.User.LastName,
+                        email = a.Staff.User.Email,
+                        role = "doctor"
+                    } : null
+                }).ToList();
+
+                return Ok(new
+                {
+                    appointments = appointmentResults,
+                    pagination = new
+                    {
+                        page = page,
+                        pageSize = pageSize,
+                        totalCount = totalCount,
+                        totalPages = (int)Math.Ceiling((double)totalCount / pageSize),
+                        hasNextPage = page * pageSize < totalCount,
+                        hasPreviousPage = page > 1
+                    },
+                    filters = new
+                    {
+                        doctorId = doctorId,
+                        date = date,
+                        status = status,
+                        search = search
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = "Internal server error", message = ex.Message });
+            }
+        }
+
+        /// <summary>
+        /// Get all appointments (Anonymous version for frontend fallback)
+        /// </summary>
+        [HttpGet("all-appointments")]
+        [AllowAnonymous]
+        public async Task<ActionResult<IEnumerable<object>>> GetAllAppointments()
+        {
+            try
+            {
+                var appointments = await _context.Appointments
+                    .Include(a => a.Service)
+                    .Include(a => a.Patient)
+                        .ThenInclude(p => p.User)
+                    .Include(a => a.Staff)
+                        .ThenInclude(s => s.User)
+                    .OrderBy(a => a.AppointmentDate)
+                    .ThenBy(a => a.StartTime)
+                    .ToListAsync();
+
+                var appointmentResults = appointments.Select(a => new
+                {
+                    id = a.Id,
+                    appointmentDate = a.AppointmentDate.ToString("yyyy-MM-dd"),
+                    startTime = a.StartTime.ToString("HH:mm"),
+                    endTime = a.EndTime.ToString("HH:mm"),
+                    status = a.Status,
+                    notes = a.Notes,
+                    staffId = a.StaffId,
+                    doctorId = a.DoctorId,
+                    patientId = a.PatientId,
+                    patient = new
+                    {
+                        id = a.Patient?.Id,
+                        firstName = a.Patient?.User?.FirstName,
+                        lastName = a.Patient?.User?.LastName,
+                        email = a.Patient?.User?.Email,
+                        phone = a.Patient?.User?.PhoneNumber
+                    },
+                    service = new
+                    {
+                        id = a.Service?.Id,
+                        name = a.Service?.Name,
+                        durationMinutes = a.Service?.DurationMinutes,
+                        price = a.Service?.Price
+                    },
+                    staff = a.Staff != null ? new
+                    {
+                        id = a.Staff.Id,
+                        staffId = a.Staff.Id,
+                        userId = a.Staff.UserId,
+                        firstName = a.Staff.User.FirstName,
+                        lastName = a.Staff.User.LastName,
+                        email = a.Staff.User.Email,
+                        role = "doctor"
+                    } : null
                 }).ToList();
 
                 return Ok(appointmentResults);
@@ -429,9 +781,46 @@ public class AppointmentsController : ControllerBase
 
                 // Service validation already done above when calculating end time
 
-                // Check if the time slot is available
+                // Handle doctor assignment
+                Guid? assignedStaffId = request.StaffId;
+                
+                // If no doctor is specified, assign one automatically
+                if (assignedStaffId == null)
+                {
+                    // Get available doctors for the appointment date
+                    var availableDoctors = await _context.Staff
+                        .Include(s => s.User)
+                        .Where(s => s.IsActive && s.User.IsActive)
+                        .ToListAsync();
+
+                    if (availableDoctors.Any())
+                    {
+                        // Use round-robin assignment based on appointment date and time
+                        var appointmentHash = request.AppointmentDate.GetHashCode() + startTime.GetHashCode();
+                        var doctorIndex = Math.Abs(appointmentHash) % availableDoctors.Count;
+                        assignedStaffId = availableDoctors[doctorIndex].Id;
+                    }
+                    else
+                    {
+                        return BadRequest(new { error = "No available doctors found" });
+                    }
+                }
+                else
+                {
+                    // Validate the specified doctor exists and is active
+                    var doctor = await _context.Staff
+                        .Include(s => s.User)
+                        .FirstOrDefaultAsync(s => s.Id == assignedStaffId && s.IsActive && s.User.IsActive);
+                    if (doctor == null)
+                    {
+                        return BadRequest(new { error = "Specified doctor not found or not active" });
+                    }
+                }
+
+                // Check if the time slot is available for the assigned doctor
                 var conflictingAppointment = await _context.Appointments
                     .Where(a => a.AppointmentDate == request.AppointmentDate &&
+                               a.StaffId == assignedStaffId &&
                                a.Status != "cancelled" &&
                                ((a.StartTime <= startTime && a.EndTime > startTime) ||
                                 (a.StartTime < endTime && a.EndTime >= endTime) ||
@@ -440,7 +829,7 @@ public class AppointmentsController : ControllerBase
 
                 if (conflictingAppointment != null)
                 {
-                    return BadRequest(new { error = "Time slot is not available" });
+                    return BadRequest(new { error = "Doctor is not available at this time" });
                 }
 
                 // Create the appointment with ALL required fields
@@ -449,6 +838,7 @@ public class AppointmentsController : ControllerBase
                     Id = Guid.NewGuid(), // ✅ Add the missing Id field
                     PatientId = request.PatientId,
                     ServiceId = request.ServiceId,
+                    StaffId = assignedStaffId, // ✅ Assign the doctor
                     AppointmentDate = request.AppointmentDate,
                     StartTime = startTime,
                     EndTime = endTime,
@@ -501,7 +891,17 @@ public class AppointmentsController : ControllerBase
                         LastName = createdAppointment.Patient.User.LastName,
                         Phone = createdAppointment.Patient.User.PhoneNumber ?? ""
                     },
-                    Staff = null // New appointment doesn't have staff assigned yet
+                    Staff = createdAppointment.Staff != null ? new StaffResponse
+                    {
+                        Id = createdAppointment.Staff.Id,
+                        UserId = createdAppointment.Staff.UserId,
+                        StaffNumber = createdAppointment.Staff.StaffNumber,
+                        FirstName = createdAppointment.Staff.User.FirstName,
+                        LastName = createdAppointment.Staff.User.LastName,
+                        Role = "doctor",
+                        Phone = createdAppointment.Staff.User.PhoneNumber,
+                        IsActive = createdAppointment.Staff.User.IsActive
+                    } : null
                 };
 
                 return CreatedAtAction(nameof(GetAppointment), new { id = appointment.Id }, response);

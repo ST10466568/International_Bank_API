@@ -138,6 +138,24 @@ namespace HopewellClinicApi.Controllers
                 return NotFound(new { error = "User not found" });
             }
 
+            // If user is a patient, include patient information
+            if (session.Roles.Contains("patient"))
+            {
+                var patient = await _context.Patients
+                    .FirstOrDefaultAsync(p => p.UserId == user.Id);
+
+                return Ok(new
+                {
+                    id = user.Id,
+                    email = user.Email,
+                    firstName = user.FirstName,
+                    lastName = user.LastName,
+                    roles = session.Roles,
+                    patientId = patient?.Id,
+                    patientNumber = patient?.PatientNumber
+                });
+            }
+
             return Ok(new
             {
                 id = user.Id,

@@ -10,7 +10,6 @@ namespace HopewellClinicApi.Controllers
 {
 [ApiController]
 [Route("api/[controller]")]
-[JwtAuthorize]
 public class StaffController : ControllerBase
     {
         private readonly HopewellDbContext _context;
@@ -105,7 +104,7 @@ public class StaffController : ControllerBase
         /// Update staff schedule/availability
         /// </summary>
         [HttpPut("{id}/availability-schedule")]
-        [AllowAnonymous]
+        [JwtAuthorize]
         public async Task<ActionResult<object>> UpdateStaffAvailabilitySchedule(string id, [FromBody] object scheduleData)
         {
             try
@@ -159,14 +158,24 @@ public class StaffController : ControllerBase
         /// </summary>
         [HttpGet("{id}/schedule")]
         [AllowAnonymous]
-        public async Task<ActionResult<object>> GetStaffScheduleWithDateRange(Guid id, [FromQuery] string startDate, [FromQuery] string endDate)
+        public async Task<ActionResult<object>> GetStaffScheduleWithDateRange(string id, [FromQuery] string startDate, [FromQuery] string endDate)
         {
             try
             {
+                if (string.IsNullOrEmpty(id))
+                {
+                    return BadRequest("Staff ID is required");
+                }
+
+                if (!Guid.TryParse(id, out var staffGuid))
+                {
+                    return BadRequest("Invalid staff ID format");
+                }
+
                 // Check if staff exists
                 var staff = await _context.Staff
                     .Include(s => s.User)
-                    .FirstOrDefaultAsync(s => s.Id == id);
+                    .FirstOrDefaultAsync(s => s.Id == staffGuid);
 
                 if (staff == null)
                 {
@@ -175,7 +184,7 @@ public class StaffController : ControllerBase
 
                 // Get doctor schedules for this staff member
                 var schedules = await _context.DoctorSchedules
-                    .Where(ds => ds.DoctorId == id && ds.IsActive)
+                    .Where(ds => ds.DoctorId == staffGuid && ds.IsActive)
                     .OrderBy(ds => ds.DayOfWeek)
                     .ToListAsync();
 
@@ -213,7 +222,7 @@ public class StaffController : ControllerBase
 
                 return Ok(new
                 {
-                    staffId = id.ToString(),
+                    staffId = id,
                     staffName = $"{staff.User.FirstName} {staff.User.LastName}",
                     startDate = startDate,
                     endDate = endDate,
@@ -230,7 +239,7 @@ public class StaffController : ControllerBase
         /// Update staff availability (for frontend compatibility)
         /// </summary>
         [HttpPut("{id}/availability")]
-        [AllowAnonymous]
+        [JwtAuthorize]
         public async Task<ActionResult<object>> UpdateStaffAvailability(Guid id, [FromBody] object availabilityData)
         {
             try
@@ -334,7 +343,7 @@ public class StaffController : ControllerBase
             }
         }
 
-        [HttpGet("{id}/schedule")]
+        [HttpGet("{id}/appointments")]
         public async Task<ActionResult<IEnumerable<AppointmentResponse>>> GetStaffSchedule(Guid id, [FromQuery] DateTime? startDate, [FromQuery] DateTime? endDate)
         {
             try
@@ -450,37 +459,53 @@ public class StaffController : ControllerBase
         }
 
 
+        /// <summary>
+        /// Get all active staff members (doctors) - Anonymous access for frontend
+        /// </summary>
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<StaffResponse>>> GetStaff()
+        [AllowAnonymous]
+        public async Task<ActionResult<IEnumerable<object>>> GetStaff([FromQuery] string? role = null, [FromQuery] bool? isActive = true)
         {
             try
             {
-                var staff = await (from s in _context.Staff
-                                   join u in _context.Users on s.UserId equals u.Id
-                                   join ur in _context.UserRoles on u.Id equals ur.UserId
-                                   join r in _context.Roles on ur.RoleId equals r.Id
-                                   where u.IsActive
-                                   select new StaffResponse
-                                   {
-                                       Id = s.Id,
-                                       UserId = s.UserId,
-                                       StaffNumber = s.StaffNumber,
-                                       FirstName = u.FirstName,
-                                       LastName = u.LastName,
-                                       Role = r.Name ?? "staff",
-                                       Phone = u.PhoneNumber,
-                                       IsActive = u.IsActive
-                                   }).ToListAsync();
+                var query = from s in _context.Staff
+                           join u in _context.Users on s.UserId equals u.Id
+                           join ur in _context.UserRoles on u.Id equals ur.UserId
+                           join r in _context.Roles on ur.RoleId equals r.Id
+                           where (isActive == null || u.IsActive == isActive.Value)
+                           select new { Staff = s, User = u, Role = r };
+
+                if (!string.IsNullOrEmpty(role))
+                {
+                    query = query.Where(x => x.Role.Name == role);
+                }
+
+                var staff = await query
+                    .OrderBy(x => x.User.LastName)
+                    .ThenBy(x => x.User.FirstName)
+                    .Select(x => new
+                    {
+                        id = x.Staff.Id,
+                        firstName = x.User.FirstName,
+                        lastName = x.User.LastName,
+                        email = x.User.Email,
+                        role = x.Role.Name ?? "staff",
+                        isActive = x.User.IsActive,
+                        staffNumber = x.Staff.StaffNumber,
+                        phone = x.User.PhoneNumber
+                    })
+                    .ToListAsync();
 
                 return Ok(staff);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                return StatusCode(500, new { error = "Internal server error" });
+                return StatusCode(500, new { error = "Internal server error", message = ex.Message });
             }
         }
 
         [HttpPut("{id}")]
+        [JwtAuthorize]
         public async Task<ActionResult> UpdateStaff(Guid id, [FromBody] UpdateStaffRequest request)
         {
             try
@@ -512,6 +537,7 @@ public class StaffController : ControllerBase
         }
 
         [HttpPost("{id}/availability")]
+        [JwtAuthorize]
         public async Task<ActionResult> UpdateAvailability(Guid id, [FromBody] UpdateAvailabilityRequest request)
         {
             try

@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authorization;
 using HopewellClinicApi.Data;
 using HopewellClinicApi.DTOs;
 using HopewellClinicApi.Models;
@@ -9,7 +10,6 @@ namespace HopewellClinicApi.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    [AuthorizeDoctor]
     public class DoctorController : ControllerBase
     {
         private readonly HopewellDbContext _context;
@@ -19,7 +19,43 @@ namespace HopewellClinicApi.Controllers
             _context = context;
         }
 
+        /// <summary>
+        /// Get all doctors for admin schedule view
+        /// </summary>
+        [HttpGet]
+        [JwtAuthorize]
+        public async Task<ActionResult<IEnumerable<object>>> GetAllDoctors()
+        {
+            try
+            {
+                var doctors = await _context.Staff
+                    .Include(s => s.User)
+                    .Where(s => s.IsActive && s.User.IsActive)
+                    .Select(s => new
+                    {
+                        id = s.Id,
+                        firstName = s.User.FirstName,
+                        lastName = s.User.LastName,
+                        specialization = "General Practice",
+                        isActive = s.IsActive && s.User.IsActive,
+                        email = s.User.Email,
+                        phone = s.User.PhoneNumber,
+                        staffNumber = s.StaffNumber
+                    })
+                    .OrderBy(d => d.lastName)
+                    .ThenBy(d => d.firstName)
+                    .ToListAsync();
+
+                return Ok(doctors);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = "Internal server error", message = ex.Message });
+            }
+        }
+
         [HttpGet("{doctorId}/patients")]
+        [AuthorizeDoctor]
         public async Task<ActionResult<IEnumerable<PatientSummaryDto>>> GetDoctorPatients(Guid doctorId)
         {
             try
@@ -60,6 +96,7 @@ namespace HopewellClinicApi.Controllers
         }
 
         [HttpGet("{doctorId}/appointments/upcoming")]
+        [AuthorizeDoctor]
         public async Task<ActionResult<IEnumerable<AppointmentResponse>>> GetUpcomingAppointments(Guid doctorId)
         {
             try
@@ -241,6 +278,7 @@ namespace HopewellClinicApi.Controllers
 
         // Doctor Shift Management
         [HttpGet("{doctorId}/shifts")]
+        [AuthorizeDoctor]
         public async Task<ActionResult<IEnumerable<DoctorShiftResponse>>> GetDoctorShifts(Guid doctorId)
         {
             try
@@ -371,6 +409,7 @@ namespace HopewellClinicApi.Controllers
 
         // Enhanced Doctor Appointments
         [HttpGet("{doctorId}/appointments")]
+        [AuthorizeDoctor]
         public async Task<ActionResult<IEnumerable<AppointmentWithApprovalResponse>>> GetAllDoctorAppointments(Guid doctorId)
         {
             try
@@ -436,6 +475,7 @@ namespace HopewellClinicApi.Controllers
         }
 
         [HttpGet("{doctorId}/schedule")]
+        [AuthorizeDoctor]
         public async Task<ActionResult<DoctorScheduleResponse>> GetDoctorSchedule(Guid doctorId, [FromQuery] DateTime startDate, [FromQuery] DateTime endDate)
         {
             try

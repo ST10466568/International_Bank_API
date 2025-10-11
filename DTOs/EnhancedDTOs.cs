@@ -82,9 +82,112 @@ namespace HopewellClinicApi.DTOs
         public string Role { get; set; } = string.Empty;
     }
 
+    // Enhanced Patient Creation DTOs
+    public class CreatePatientRequest
+    {
+        [Required]
+        public string FirstName { get; set; } = string.Empty;
+
+        [Required]
+        public string LastName { get; set; } = string.Empty;
+
+        [Required]
+        [EmailAddress]
+        public string Email { get; set; } = string.Empty;
+
+        [Required]
+        [MinLength(6)]
+        public string Password { get; set; } = string.Empty;
+
+        [Required]
+        public string Role { get; set; } = "patient";
+
+        [Required]
+        [Phone]
+        public string Phone { get; set; } = string.Empty;
+
+        [Required]
+        [RegularExpression(@"^\d{4}-\d{2}-\d{2}$", ErrorMessage = "Date of birth must be in YYYY-MM-DD format")]
+        public string DateOfBirth { get; set; } = string.Empty;
+
+        [Required]
+        public string Address { get; set; } = string.Empty;
+
+        [Required]
+        public string EmergencyContact { get; set; } = string.Empty;
+
+        [Required]
+        [Phone]
+        public string EmergencyPhone { get; set; } = string.Empty;
+    }
+
+    // Unified User Creation DTO
+    public class CreateUserRequest
+    {
+        [Required]
+        public string FirstName { get; set; } = string.Empty;
+
+        [Required]
+        public string LastName { get; set; } = string.Empty;
+
+        [Required]
+        [EmailAddress]
+        public string Email { get; set; } = string.Empty;
+
+        [Required]
+        [MinLength(6)]
+        public string Password { get; set; } = string.Empty;
+
+        [Required]
+        public string Role { get; set; } = string.Empty;
+
+        // Optional patient-specific fields
+        public string? Phone { get; set; }
+        public string? DateOfBirth { get; set; }
+        public string? Address { get; set; }
+        public string? EmergencyContact { get; set; }
+        public string? EmergencyPhone { get; set; }
+    }
+
     public class UpdateStaffRequest
     {
         public string? PhoneNumber { get; set; }
+    }
+
+    // Response DTOs
+    public class UserCreationResponse
+    {
+        public bool Success { get; set; }
+        public string Message { get; set; } = string.Empty;
+        public object? Data { get; set; }
+        public string? Error { get; set; }
+    }
+
+
+    // Admin Walk-in Appointment DTO
+    public class AdminWalkInAppointmentRequest
+    {
+        [Required]
+        public Guid PatientId { get; set; }
+
+        [Required]
+        public Guid StaffId { get; set; }
+
+        [Required]
+        public Guid ServiceId { get; set; }
+
+        [Required]
+        [RegularExpression(@"^\d{4}-\d{2}-\d{2}$", ErrorMessage = "Appointment date must be in YYYY-MM-DD format")]
+        public string AppointmentDate { get; set; } = string.Empty;
+
+        [Required]
+        [RegularExpression(@"^\d{2}:\d{2}(:\d{2})?$", ErrorMessage = "Start time must be in HH:mm or HH:mm:ss format")]
+        public string StartTime { get; set; } = string.Empty;
+
+        [RegularExpression(@"^\d{2}:\d{2}(:\d{2})?$", ErrorMessage = "End time must be in HH:mm or HH:mm:ss format")]
+        public string? EndTime { get; set; }
+
+        public string? Notes { get; set; }
     }
 
     public class UpdateAvailabilityRequest

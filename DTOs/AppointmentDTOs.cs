@@ -18,6 +18,8 @@ namespace HopewellClinicApi.DTOs
 
         public string EndTime { get; set; } = string.Empty;
 
+        public Guid? StaffId { get; set; }
+
         public string? Notes { get; set; }
     }
 

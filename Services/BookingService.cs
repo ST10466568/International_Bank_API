@@ -380,10 +380,33 @@ namespace HopewellClinicApi.Services
             return dates;
         }
 
-        private static List<string> GetDoctorServices(Guid doctorId)
+        private static List<ServiceDto> GetDoctorServices(Guid doctorId)
         {
             // This could be enhanced to get actual services from a doctor-services relationship
-            return new List<string> { "consultation", "follow-up", "check-up" };
+            return new List<ServiceDto> 
+            { 
+                new ServiceDto
+                {
+                    Name = "General Consultation",
+                    Description = "General medical consultation",
+                    DurationMinutes = 30,
+                    Price = 150.00m
+                },
+                new ServiceDto
+                {
+                    Name = "Follow-up",
+                    Description = "Follow-up appointment",
+                    DurationMinutes = 20,
+                    Price = 100.00m
+                },
+                new ServiceDto
+                {
+                    Name = "Check-up",
+                    Description = "Regular health check-up",
+                    DurationMinutes = 45,
+                    Price = 200.00m
+                }
+            };
         }
 
         private async Task<decimal> GetServicePrice(Guid? serviceId)
